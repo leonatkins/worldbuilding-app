@@ -6,6 +6,10 @@ term for each domain concept so the PRD, design spec, and code stay aligned.
 
 ## Language
 
+**World**:
+The top-level organizational container — a named collection of subjects. The term is thematic, not literal; a multi-planet universe is one world with subjects representing each planet. Users may own multiple worlds (free tier: 2; paid: unlimited).
+_Avoid_: Universe, project, campaign, setting
+
 **Subject**:
 The unit of identity in a world — a character, place, faction, spell, or concept.
 Everything else (facts, tags, schema values) hangs off a subject.
