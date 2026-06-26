@@ -69,7 +69,7 @@ Account
 - A **Fact** is the atomic unit of information. Not a prose paragraph — a short note, one to two sentences, with an optional label prefix. Facts are the primary thing you do in this app.
 - **Facts are ordered** within a subject. User controls order via drag-and-drop.
 - **@mentions** inside fact content auto-link to other subjects. Typing `@` triggers a fuzzy subject search dropdown. When a referenced subject is renamed, all @mentions update automatically.
-- **Tags** live on subjects, not facts. User-defined strings for cross-cutting concerns (`#arc-1`, `#deceased`, `#spoiler`).
+- **Tags** live on subjects, not facts. User-defined strings for cross-cutting concerns (`#arc-1`, `#deceased`, `#spoiler`). Tags are renameable world-wide in one operation (stored as a normalized table, not as strings on each subject).
 
 **Schema**
 - Each **Category** has a **Schema**: a set of typed fields that appear consistently on every subject in that category.
@@ -156,13 +156,13 @@ Two types of user-created, shareable templates:
 - Each fact has an optional label prefix (typed as `Label: content` or set after the fact is created).
 - Reorder facts via drag-and-drop.
 - Edit or delete individual facts inline.
-- Facts use a **hybrid storage model**: plain text segments interleaved with structured mention objects (see @mention section below). Not raw plain text, not a full document object model — a lightweight middle ground.
+- Facts are stored as **plain text with inline `@{id}` mention markers** (see @mention section below). The referenced subject's name is never stored — only its stable id — and is resolved live at render time. (This supersedes an earlier "hybrid segment object" model; see [ADR 0001](docs/adr/0001-facts-as-plain-text-with-id-markers.md) and design spec §4.1.)
 
 **@mention autocomplete**
 - Typing `@` triggers the **mention autocomplete** — a typeahead dropdown showing matching subjects as you type, fuzzy-matched by name.
 - Arrow keys + enter (or click) to select. Escape to dismiss.
 - Once selected, the `@` and query text are replaced in the UI by the subject name rendered as **bold highlighted text** (a clickable link to that subject). The raw syntax is never visible in read mode.
-- **Storage:** mentions are stored as structured objects embedded in the fact, not as plain text strings. Format: `{ type: "mention", id: "uuid-123", displayName: "Aragorn" }`. The `id` is the stable reference; `displayName` is cached for render but always overridden by the subject's current name at display time. This means renaming a subject updates every mention of it everywhere automatically — no find-and-replace, no broken links, no ambiguity between subjects that share a name.
+- **Storage:** mentions are stored as inline `@{id}` markers inside the fact's plain text (`Trained under @{uuid-123}`), where `id` is the subject's stable reference. The subject's name is **never** stored in the fact — not even cached — and is resolved live from the id at display time. This means renaming a subject updates every mention of it everywhere automatically — no find-and-replace, no broken links, no staleness window, no ambiguity between subjects that share a name. See [ADR 0001](docs/adr/0001-facts-as-plain-text-with-id-markers.md).
 
 **`!` field autocomplete**
 - Typing `!` triggers the **field autocomplete** — a typeahead dropdown showing matching schema fields for the current subject's category, fuzzy-matched by field name (`!bday` matches `birthday`, `!pop` matches `population`).
@@ -211,7 +211,7 @@ The subject page has a fixed top-to-bottom structure — no tabs, no sidebar swi
 - Clicking `[+ Add field]` opens an inline field selector directly in the schema block — not a modal.
 
 ### 6.8 Search & Discovery
-- Global search bar: searches across all subject names and fact content in the current world
+- Global search bar: searches across all subject names and fact content in the current world. Because facts store `@{id}` markers rather than names, fact search is a **dual match** — resolve the query term to subject ids and match facts referencing those ids, unioned with a literal substring match on the fact text — so a fact that mentions "Gandalf" is found even though the name is not in its stored bytes (ADR 0001)
 - Filter by: category, one or more tags
 - Combine search + filters
 - Tags are scoped per world — not shared across worlds
@@ -319,7 +319,7 @@ The `!` command and schema are intentionally power-user features. They are cover
 
 - **Fact ordering:** Is drag-and-drop enough, or do users want pinning important facts to the top?
 
-- **⚠️ IMPLEMENTATION FLAG — fact storage model:** Facts are NOT plain text strings. They use a hybrid model: plain text segments interleaved with structured mention objects (`{ type: "mention", id: "uuid", displayName: "Aragorn" }`). The UUID is the stable reference; the display name is a cached render hint only. This must be designed into the database schema and editor implementation from day one — retrofitting structured mentions into a plain text storage model mid-project means rewriting the core data layer. Do not store facts as raw strings. Resolve before writing any fact-related backend code.
+- **✅ RESOLVED — fact storage model (ADR 0001):** Facts are stored as plain text with inline `@{id}` mention markers. The UUID is the stable reference; the subject's name is never stored (not even cached) and resolves live at render time. The earlier "hybrid segment object with cached displayName" idea was rejected in favour of the simpler, staleness-free marker model. Search by mentioned name is handled at query time via a dual match (resolve term → ids → match markers, unioned with literal text match). See [ADR 0001](docs/adr/0001-facts-as-plain-text-with-id-markers.md) and design spec §4.1.
 
 - **Template moderation:** The public template library is community-driven. Is there any moderation, reporting, or quality control, or is it fully open?
 

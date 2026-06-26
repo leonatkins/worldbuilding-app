@@ -3,7 +3,7 @@
 **Status:** Approved
 **Date:** 2026-06-25
 **Author:** Leon (with Claude)
-**Source PRD:** [`../../../worldbuilding-prd.md`](../../../worldbuilding-prd.md)
+**Source PRD:** [`../worldbuilding-prd.md`](../worldbuilding-prd.md)
 
 This document is the technical design layer on top of the product PRD. The PRD
 defines *what* and *why*; this defines *how it is built* and records the design
@@ -16,7 +16,7 @@ intent (including AI features, which are **not built** in this phase — see §7
 ## 1. The core thesis (and the moat)
 
 A world is a collection of subjects; a subject is a collection of **facts**.
-Facts are the frictionless default. Structure (schema fields, roles) is always a
+Facts are the frictionless default. Structure (schema fields) is always a
 **deliberate pull**, never pushed on the user.
 
 ### The facts-first gradient — top-level design constraint
@@ -35,7 +35,7 @@ What prevents "everything becomes schema" is **not a rule about what may be a
 field** — policing that would be its own rigidity. It is **friction asymmetry**:
 
 - A fact costs zero deliberate effort (cursor, type, Enter, done).
-- A field costs a deliberate act (`!` command, or building a Role).
+- A field costs a deliberate act (`!` command).
 
 Entropy therefore points toward facts. Users climb to structure only when *not*
 having it hurts more than making it. That inversion is the moat — a **UX
@@ -53,7 +53,7 @@ A schema field earns its place only when **all three** hold:
    wants to be a nuanced sentence, it's a fact.
 2. **You would query it across the category** — filter, sort, compare. If never
    cross-queried, a field buys nothing.
-3. **Applies consistently** across the category (or a Role's worth of subjects).
+3. **Applies consistently** across the category.
 
 Examples: `Likes`, `Lies told` → **facts** (open-ended, never cross-queried).
 `Alignment`, `Population`, `Birthday`, `Mentor` → **fields** (atoms you'd filter
@@ -113,15 +113,15 @@ Every feature is a variation on this loop.
 ```
 accounts
   worlds                       (per account; free tier limited)
-    categories                 (Characters, Locations, ... ; icon; per world)
-      schema_fields  ──────┐   (typed field definitions; owner = category OR role)
-      roles  ──────────────┘   (named field bundles, per category)
-    subjects                   (one category; tags[]; archivable)
-      subject_roles            (which roles a subject holds)
+    categories                 (icon; position: float)
+      schema_fields            (typed; owned by category; position: float)
+    tags                       (world-scoped; name; renameable in one place)
+    subjects                   (one category; archived_at timestamptz nullable — NULL = active)
+      subject_tags             (join: which tags a subject holds)
       field_values             (this subject's value per applicable field)
-      facts                    (ordered plain text + @{id} markers)
-    relationships              (subject → subject; origin = fact mention | List/Link field)
-    templates                  (schema templates + world templates; shareable)
+      facts                    (ordered plain text + @{id} markers; position: float)
+    relationships              (from_subject_id → to_subject_id; origin: fact|field; fact_id?, field_id? nullable)
+    templates                  (schema + world templates; content jsonb snapshot, unpacked into real rows on apply)
 ```
 
 ### 4.1 Facts (the critical decision — PRD §12 flag)
@@ -141,48 +141,64 @@ Rendered:  Trained under Gandalf before meeting Elrond in the south.
 - Markers may appear **anywhere** in the text, **any number of times**
   (mid-sentence, multiple per fact). The `@{...}` token is the distinguishing
   syntax; the user never sees raw markers — they render as bold, clickable links.
-- Facts are **ordered** within a subject (drag-and-drop; stored via a position
-  value). Editable/deletable inline.
+- Facts are **ordered** within a subject (drag-and-drop; stored via a `position float` column). Insert between two facts by averaging their positions; rebalance to integer multiples if precision is ever exhausted (not expected at realistic fact counts). Editable/deletable inline.
 
 `lib/facts` owns parse/serialize/render of this format. `lib/mentions` owns
 resolving an ID to its current subject and keeping the relationships table in
 sync on save.
 
+- **Search consequence:** because names are not stored in the fact, global
+  search (PRD §6.8) by mentioned name is a **dual match** — resolve the query
+  term to subject IDs and match facts whose `@{id}` markers contain those IDs,
+  **unioned** with a literal substring match on the fact text. A fact that
+  mentions "Gandalf" is found even though the name never appears in its stored
+  bytes. Recorded in [ADR 0001](../../adr/0001-facts-as-plain-text-with-id-markers.md).
+
 ### 4.2 Schema fields
 
 Field types per PRD §5: List, Link, Text, Number, Boolean, Select, Multi-select,
-Date, Scale, Color. Type-specific configuration (select options, scale range,
-target category for List/Link) stored with the field definition.
+Date, Scale, Color. Type-specific config is stored in **typed nullable columns**
+(not a JSONB blob) so Postgres can enforce referential integrity:
 
-A **schema field is owned by either a category or a role** (exactly one). A
-subject stores only its **values**, keyed by field. At render, the set of fields
-shown on a subject = its category's fields + the fields of every role it holds,
-filtered to those with values (empty fields hidden, per PRD §6.7).
+| Column | Used by |
+|---|---|
+| `target_category_id uuid FK→categories` | List, Link |
+| `select_options text[]` | Select, Multi-select |
+| `scale_min integer, scale_max integer` | Scale |
+| `unit text` | Number |
+
+`target_category_id` is a foreign key with `ON DELETE RESTRICT` — deleting a
+category that List/Link fields still reference is blocked at the DB layer, forcing
+explicit cleanup in the category-delete flow.
+
+A **schema field is owned by its category** (exactly one). A subject stores only
+its **values**, keyed by field. At render, the set of fields shown on a subject =
+its category's fields, filtered to those with values (empty fields hidden, per
+PRD §6.7). See [ADR 0002](adr/0002-no-roles-in-mvp.md) for why subject-level
+field bundles (Roles) were deferred.
+
+**`List` fields are subject references only** — "multiple subjects from a
+specified category." Free-text lists (e.g. "favorite foods") are not a field
+type; they belong as a **fact** (`Likes: apples, lembas bread`). `Multi-select`
+covers predefined option lists but not freeform text entry.
+
+**`field_values` storage is a hybrid** — split by whether the value references a subject:
+
+| Field types | Storage |
+|---|---|
+| Text, Number, Boolean, Select, Multi-select, Date, Scale, Color | `scalar_value jsonb` on `field_values` |
+| Link (single subject) | `linked_subject_id uuid FK→subjects ON DELETE SET NULL` on `field_values` |
+| List (multiple subjects) | `list_value_subjects(field_value_id, subject_id FK→subjects ON DELETE CASCADE)` join table |
+
+Subject-reference values get real FK columns so Postgres blocks or clears them
+on subject delete — no silent orphans. Scalar values have no referential
+integrity concern so JSONB is fine. The `relationships` table is still populated
+from both on write (backlink source).
 
 `List`/`Link` field values reference subjects and feed the relationships table
 (backlinks), exactly like fact mentions.
 
-### 4.3 Roles (subject-level field presets)
-
-A **Role** is a named, reusable bundle of schema fields, **owned by a category**
-(e.g. `Mentor` is a Character role). It solves subject-level variation: Gandalf
-holds `Mentor` and shows `Mentees`; Frodo holds no such role and stays clean.
-
-- A subject can hold **multiple roles**; their fields **compose** with the
-  category's base fields.
-- Roles are **live/linked**: editing a role definition (add/remove a field)
-  updates every subject holding it immediately — same rule the PRD sets for
-  category schema changes (§6.2).
-- **Removal is data-safe:** removing a role from a subject **keeps** any entered
-  values — they detach into plain subject-level fields rather than being deleted.
-  Empty fields simply disappear. Re-applying re-links.
-- Relationship to existing PRD concepts — one idea ("a named set of fields") at
-  different scopes:
-  - **Category schema** → every subject in the category.
-  - **Role** → this subject (and others that hold the role).
-  - **Schema / World Templates** (PRD §6.3) → shareable snapshots.
-
-### 4.4 Relationships & backlinks
+### 4.3 Relationships & backlinks
 
 A single `relationships` table records subject→subject references, with an origin
 (fact mention or List/Link field). It powers:
@@ -196,14 +212,34 @@ A single `relationships` table records subject→subject references, with an ori
 
 *(The earlier "unorganized backlink threshold notification" idea was dropped.)*
 
+### 4.4 World creation starting points
+
+On world creation the user picks one of three starting points:
+
+1. **From a world template** — applies a community or saved template (unpacks jsonb snapshot into real categories + schema fields).
+2. **Default** — seeds the five default categories (Characters, Locations, Factions, Items, Systems) with no schema fields. Defaults are hardcoded in app code, not a DB table.
+3. **Blank** — empty world, no categories.
+
+### 4.5 Templates
+
+Stored as a single `content jsonb` column — a frozen snapshot of the category/field
+structure at save time. Applying a template unpacks that blob into real `categories`
+and `schema_fields` rows; the template itself is never queried field-by-field.
+Two kinds (per PRD §6.3): **schema templates** (one category's fields) and
+**world templates** (full category structure, no subjects or facts).
+
 ---
 
 ## 5. Auth & security
 
 - Supabase Auth: email/password + Google OAuth.
-- Every world/category/subject/fact row is owned by an account. **RLS policies**
-  ensure a query can only ever return rows the authenticated account owns — a
-  safety net beneath the application code.
+- A Postgres trigger on `auth.users` insert creates the `accounts` row
+  automatically — atomic with sign-up, no broken-state window where a user
+  exists in Auth but has no account row.
+- Every table carries a denormalized `account_id` column. **RLS policies** are
+  `WHERE account_id = auth.uid()` — one-liners, no join chains up the ownership
+  tree. Fast and simple; the redundancy cost per row is negligible for a
+  single-owner app with no multi-tenancy.
 - Server-only write paths (server actions / route handlers); no privileged keys
   reach the client.
 
@@ -212,7 +248,7 @@ A single `relationships` table records subject→subject references, with an ori
 ## 6. Monetization (model only; gating built later)
 
 Per PRD §9: free tier limited to 2 worlds; paid unlimited. Content (subjects,
-facts, schema, roles) is unlimited on both tiers. Gating logic is a late roadmap
+facts, schema) is unlimited on both tiers. Gating logic is a late roadmap
 step; the data model anticipates it (account tier) but the build does not
 implement billing in this phase.
 
@@ -233,7 +269,7 @@ could scan here`. These comments are kept accurate as surrounding code changes.
 
 ## 8. Build order (roadmap)
 
-See [`../../ROADMAP.md`](../../ROADMAP.md). Simplest-first; architecture before
+See [`ROADMAP.md`](ROADMAP.md). Simplest-first; architecture before
 features. This phase delivers steps 1–2 (repo, tooling, Supabase/Drizzle wiring)
 plus this spec and the roadmap. Feature steps (3+) follow as their own
 plan → implementation cycles.
@@ -242,7 +278,14 @@ plan → implementation cycles.
 
 ## 9. Open questions (deferred, non-blocking)
 
-- Fact ordering: drag-and-drop only, or also pin-to-top? (PRD §12)
-- Template library moderation: open vs. curated? (PRD §12)
+- **Fact pin-to-top:** drag-and-drop covers ordering, but should users be able to
+  pin important facts to the top of the list regardless of position? Defer to
+  step 8 (facts engine) — resolve when building the reorder UI.
+- **Template library moderation:** public templates are community-contributed —
+  is there any reporting, curation, or quality control, or fully open? Defer to
+  step 13 (templates) — low stakes until the library exists.
 - `@{id}` marker exact syntax is internal and changeable; `@{uuid}` is the
   working choice.
+- **List/Link value picker at scale:** when a category has hundreds of subjects,
+  how does the user select values for a List or Link field without a modal wall
+  of options? Cover when reaching schema editor (step 6) or facts engine (step 8).

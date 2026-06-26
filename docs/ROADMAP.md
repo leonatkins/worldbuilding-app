@@ -2,7 +2,7 @@
 
 Ordered simplest-first: architecture before features. Each feature step is its
 own spec → plan → implementation cycle. See
-[`superpowers/specs/2026-06-25-worldbuilding-app-design.md`](superpowers/specs/2026-06-25-worldbuilding-app-design.md)
+[`design.md`](design.md)
 for the design.
 
 Status: ✅ done · 🚧 in progress · ⬜ not started
@@ -12,20 +12,19 @@ Status: ✅ done · 🚧 in progress · ⬜ not started
 | 1 | **Repo + tooling** — git, Next.js + TS + Tailwind, ESLint, README/CHANGELOG/.env.example/.gitignore | ✅ |
 | 2 | **Supabase + Drizzle wired** — clients, env, migration tooling, empty schema | ✅ |
 | 3 | **Auth** — Supabase email + Google, protected routes, account bootstrap | ⬜ |
-| 4 | **Data model migration #1** — worlds, categories, subjects, facts, roles, subject_roles, schema_fields, field_values, relationships | ⬜ |
+| 4 | **Data model migration #1** — worlds, categories, schema_fields, subjects, field_values, facts, relationships | ⬜ |
 | 5 | **World CRUD** — create/switch/rename, default categories on creation | ⬜ |
 | 6 | **Category + schema editor** — typed fields, reorder, apply-to-subjects | ⬜ |
-| 7 | **Roles** — per-category field bundles, apply/remove on subjects, live composition | ⬜ |
-| 8 | **Subject CRUD** — create/edit/archive, tags, list view | ⬜ |
-| 9 | **Facts engine** — text + `@{id}` markers, ordered entry, inline edit, drag reorder | ⬜ |
-| 10 | **@mention autocomplete** — typeahead, live render, raw backlinks | ⬜ |
-| 11 | **Backlink organization** — select backlinks → promote to List fields | ⬜ |
-| 12 | **`!` field autocomplete** — inline schema fill + create-field (category & role fields) | ⬜ |
-| 13 | **Search & filtering** — names + fact content, category/tag filters, tag browser | ⬜ |
-| 14 | **Templates** — schema + world templates, library | ⬜ |
-| 15 | **Onboarding guide panel** | ⬜ |
+| 7 | **Subject CRUD** — create/edit/archive, tags, list view | ⬜ |
+| 8 | **Facts engine** — text + `@{id}` markers, ordered entry, inline edit, drag reorder | ⬜ |
+| 9 | **@mention autocomplete** — typeahead, live render, raw backlinks | ⬜ |
+| 10 | **Backlink organization** — select backlinks → promote to List fields | ⬜ |
+| 11 | **`!` field autocomplete** — inline schema fill + create-field | ⬜ |
+| 12 | **Search & filtering** — names + fact content, category/tag filters, tag browser | ⬜ |
+| 13 | **Templates** — schema + world templates, library | ⬜ |
+| 14 | **Onboarding guide panel** | ⬜ |
 
-**Not in scope (future):** AI features (PRD §7), mobile/PWA, desktop, billing
+**Not in scope (future):** AI features (PRD §7), Roles (ADR 0002), mobile/PWA, desktop, billing
 implementation. AI leaves only hook-point comments in code (see design §7).
 
 ## Definitions of done (steps 1–2, this phase)

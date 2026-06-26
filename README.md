@@ -3,12 +3,12 @@
 A fast, minimal, **fact-first** worldbuilding tool. A world is a collection of
 subjects; a subject is a collection of **facts** — atomic, taggable, searchable
 notes that reference each other. No blank pages, no required prose, no 40-field
-templates. Structure (typed schema fields, reusable roles) is optional and
-*emerges* from facts; it is never pushed on you.
+templates. Structure (typed schema fields) is optional and *emerges* from facts; it is
+never pushed on you.
 
 > The moat is the **gradient**: capture at the speed of thought, and let
 > structure crystallize only where it earns its place. See
-> [`docs/superpowers/specs/2026-06-25-worldbuilding-app-design.md`](docs/superpowers/specs/2026-06-25-worldbuilding-app-design.md).
+> [`docs/design.md`](docs/design.md).
 
 ## Status
 
@@ -58,7 +58,7 @@ docs/     PRD, design spec, roadmap
 ## Documentation
 
 - [Product PRD](worldbuilding-prd.md)
-- [Technical design spec](docs/superpowers/specs/2026-06-25-worldbuilding-app-design.md)
+- [Technical design spec](docs/design.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Changelog](CHANGELOG.md)
 

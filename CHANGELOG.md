@@ -7,10 +7,8 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
-- Technical design spec for the entry-based worldbuilding app
-  (`docs/superpowers/specs/2026-06-25-worldbuilding-app-design.md`), including the
-  facts-first gradient principle, the `@{id}` fact storage model, and the Roles
-  (subject-level field preset) system.
+- Technical design spec for the entry-based worldbuilding app (`docs/design.md`),
+  including the facts-first gradient principle and the `@{id}` fact storage model.
 - Ordered build roadmap (`docs/ROADMAP.md`).
 - Project scaffold: Next.js 15 + TypeScript + Tailwind v4, ESLint config, base
   `app/` routes, and module-boundary stubs (`lib/db`, `lib/facts`,
