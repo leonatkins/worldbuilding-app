@@ -7,6 +7,16 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Auth (roadmap step 3):** Supabase email/password + Google OAuth, with email
+  verification gate and password reset.
+  - `accounts` table + migration: FK to `auth.users` (ON DELETE CASCADE),
+    sign-up bootstrap trigger, and own-row RLS policy.
+  - `proxy.ts` (Next 16 middleware) refreshes the session cookie and gates every
+    route: unauthenticated → `/login?next=…`, unverified → `/verify-email`.
+  - Route groups: `(app)/` protected home with sign-out; `(marketing)/` public
+    auth pages — `/login`, `/signup` (visually distinct layouts), `/verify-email`,
+    `/reset-password`, and the `/auth/callback` OAuth/email handler.
+  - Server-only auth actions in `app/actions/auth.ts`.
 - Technical design spec for the entry-based worldbuilding app (`docs/design.md`),
   including the facts-first gradient principle and the `@{id}` fact storage model.
 - Ordered build roadmap (`docs/ROADMAP.md`).

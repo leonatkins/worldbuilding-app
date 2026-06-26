@@ -12,12 +12,13 @@ never pushed on you.
 
 ## Status
 
-Early scaffold. Architecture and tooling in place; features not yet built. See
+Early development. Architecture, tooling, and **auth** (step 3) are in place;
+product features (worlds, subjects, facts) are next. See
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Stack
 
-- **Next.js 15** (App Router, React 19, TypeScript)
+- **Next.js 16** (App Router, React 19, TypeScript)
 - **Tailwind CSS v4**
 - **Supabase** — Postgres, Auth (email + Google), Row-Level Security
 - **Drizzle** ORM (migrations in git)
@@ -34,7 +35,24 @@ npm run dev                  # http://localhost:3000
 ```
 
 You'll need a [Supabase](https://supabase.com) project. Copy its URL, anon key,
-and database connection string into `.env.local`.
+and database connection string into `.env.local`:
+
+| Var | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon (public) key |
+| `DATABASE_URL` | Postgres connection string (for Drizzle migrations) |
+| `NEXT_PUBLIC_SITE_URL` | Optional. Base URL used to build auth redirect/callback links when the request `Origin` header is absent (defaults to `http://localhost:3000`). |
+
+### Auth setup
+
+1. **Apply the migration:** `npm run db:migrate` — creates the `accounts` table,
+   the `auth.users` → `accounts` bootstrap trigger, and its RLS policy.
+2. **Google OAuth:** in the Supabase dashboard → Authentication → Providers →
+   Google, enable the provider and set the redirect URL to
+   `<your-url>/auth/callback`.
+3. **Email:** email/password sign-up requires email confirmation; unverified
+   users are held at `/verify-email` until they click the link.
 
 ## Usage
 
