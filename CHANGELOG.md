@@ -7,6 +7,15 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Data model (roadmap step 4):** core schema migration — `worlds`,
+  `categories`, `schema_fields`, `subjects`, `facts`, `field_values`,
+  `list_value_subjects`, `relationships`, plus `field_type` /
+  `relationship_origin` enums.
+  - Denormalized `account_id` (DEFAULT `auth.uid()`) on every table with an
+    own-rows RLS policy, so each row is visible/writable only by its owner.
+  - Ownership cascades on delete; `target_category_id` RESTRICT (forced cleanup),
+    `linked_subject_id` SET NULL (no orphans).
+  - Spec: `docs/step-4-data-model-spec.md`.
 - **Auth (roadmap step 3):** Supabase email/password + Google OAuth, with email
   verification gate and password reset.
   - `accounts` table + migration: FK to `auth.users` (ON DELETE CASCADE),

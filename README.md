@@ -46,8 +46,11 @@ and database connection string into `.env.local`:
 
 ### Auth setup
 
-1. **Apply the migration:** `npm run db:migrate` — creates the `accounts` table,
-   the `auth.users` → `accounts` bootstrap trigger, and its RLS policy.
+1. **Apply the migrations:** `npm run db:migrate` — creates the `accounts` table,
+   the `auth.users` → `accounts` bootstrap trigger, and its RLS policy, then the
+   core data model (`worlds`, `categories`, `schema_fields`, `subjects`, `facts`,
+   `field_values`, `list_value_subjects`, `relationships`), each scoped to its
+   owner by an `account_id` RLS policy.
 2. **Google OAuth:** in the Supabase dashboard → Authentication → Providers →
    Google, enable the provider and set the redirect URL to
    `<your-url>/auth/callback`.

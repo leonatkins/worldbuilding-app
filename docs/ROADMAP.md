@@ -12,7 +12,7 @@ Status: ✅ done · 🚧 in progress · ⬜ not started
 | 1 | **Repo + tooling** — git, Next.js + TS + Tailwind, ESLint, README/CHANGELOG/.env.example/.gitignore | ✅ |
 | 2 | **Supabase + Drizzle wired** — clients, env, migration tooling, empty schema | ✅ |
 | 3 | **Auth** — Supabase email + Google, protected routes, account bootstrap | ✅ |
-| 4 | **Data model migration #1** — worlds, categories, schema_fields, subjects, field_values, facts, relationships | ⬜ |
+| 4 | **Data model migration #1** — worlds, categories, schema_fields, subjects, field_values, facts, relationships | ✅ |
 | 5 | **World CRUD** — create/switch/rename, default categories on creation | ⬜ |
 | 6 | **Category + schema editor** — typed fields, reorder, apply-to-subjects | ⬜ |
 | 7 | **Subject CRUD** — create/edit/archive, tags, list view | ⬜ |
