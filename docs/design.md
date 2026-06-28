@@ -88,7 +88,8 @@ app/
   (app)/              authenticated product surfaces (worlds, subjects, ...)
   api/ , actions      server-only write paths
 lib/
-  db/                 Drizzle client + schema + queries
+  db/                 Drizzle schema + migrations (NOT the query layer — see ADR 0004:
+                      all reads/writes go through the Supabase client; Drizzle is the blueprint)
   facts/              fact text model: parse / serialize / render @{id} markers
   mentions/           mention resolution + relationship (backlink) maintenance
   supabase/           browser + server Supabase clients (auth, RLS context)

@@ -7,6 +7,22 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **World CRUD (roadmap step 5):** create, switch, rename, and delete worlds.
+  - Creating a world seeds five default categories (Characters, Locations,
+    Factions, Items, Systems) atomically (undo-on-failure); a 🎲 button suggests
+    a random name.
+  - Worlds list at `/` with five sort orderings (default: last updated), the
+    choice persisted in `localStorage`; inline rename and two-step delete confirm
+    (no modals).
+  - World identity lives in the URL (`/worlds/[worldId]`); an in-world quick
+    switcher in the top bar jumps between worlds. See
+    [ADR 0003](docs/adr/0003-world-identity-in-url.md).
+  - All reads/writes go through the Supabase client so RLS enforces ownership;
+    Drizzle is retained as the schema/migration blueprint only. See
+    [ADR 0004](docs/adr/0004-data-access-via-supabase-client.md).
+  - Spec: `docs/step-5-world-crud-spec.md`.
+- **Tests:** Vitest unit tests for the world name validation, default-category
+  seed, and random-name generator (`npm test`).
 - **Data model (roadmap step 4):** core schema migration — `worlds`,
   `categories`, `schema_fields`, `subjects`, `facts`, `field_values`,
   `list_value_subjects`, `relationships`, plus `field_type` /

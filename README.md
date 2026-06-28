@@ -12,16 +12,19 @@ never pushed on you.
 
 ## Status
 
-Early development. Architecture, tooling, and **auth** (step 3) are in place;
-product features (worlds, subjects, facts) are next. See
-[`docs/ROADMAP.md`](docs/ROADMAP.md).
+Early development. Architecture, tooling, **auth** (step 3), the **data model**
+(step 4), and **world CRUD** (step 5) are in place; subjects and facts are next.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Stack
 
 - **Next.js 16** (App Router, React 19, TypeScript)
 - **Tailwind CSS v4**
-- **Supabase** — Postgres, Auth (email + Google), Row-Level Security
-- **Drizzle** ORM (migrations in git)
+- **Supabase** — Postgres, Auth (email + Google), Row-Level Security. App
+  reads/writes go through the Supabase client so RLS enforces ownership
+  ([ADR 0004](docs/adr/0004-data-access-via-supabase-client.md)).
+- **Drizzle** — schema-as-TypeScript + migrations in git (the schema blueprint,
+  not the query layer).
 - Hosting: Vercel + Supabase cloud
 
 AI features are specified in the PRD but **not built** in this phase.
@@ -63,6 +66,7 @@ and database connection string into `.env.local`:
 - `npm run build` — production build
 - `npm run start` — serve the production build
 - `npm run lint` — lint
+- `npm test` — run unit tests (Vitest)
 - `npm run db:generate` — generate a migration from the Drizzle schema
 - `npm run db:migrate` — apply migrations
 - `npm run db:studio` — open Drizzle Studio

@@ -5,8 +5,10 @@
  * with a sign-out control around all child pages.
  */
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
+import { WorldSwitcher } from "./world-switcher";
 
 export default async function AppLayout({
   children,
@@ -19,10 +21,26 @@ export default async function AppLayout({
   if (!user) redirect("/login");
   if (!user.email_confirmed_at) redirect("/verify-email");
 
+  // Worlds for the in-world quick switcher (recently-updated first). RLS scopes
+  // this to the signed-in user. The switcher hides itself outside a world.
+  const { data: worldData } = await supabase
+    .from("worlds")
+    .select("id, name")
+    .order("updated_at", { ascending: false });
+  const worlds = worldData ?? [];
+
   return (
     <div className="min-h-screen">
       <header className="flex items-center justify-between border-b border-neutral-200 px-6 py-3 dark:border-neutral-800">
-        <span className="text-sm font-semibold tracking-tight">Worldbuilding</span>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="text-sm font-semibold tracking-tight transition hover:opacity-70"
+          >
+            Worldbuilding
+          </Link>
+          <WorldSwitcher worlds={worlds} />
+        </div>
         <div className="flex items-center gap-3 text-sm text-neutral-500">
           <span className="hidden sm:inline">{user.email}</span>
           <form action={signOut}>
