@@ -112,12 +112,17 @@ Every feature is a variation on this loop.
 ## 4. Data model
 
 ```
+Soft delete (ADR 0005): worlds, categories, subjects carry
+`deleted_at timestamptz nullable` (NULL = live). Delete is soft → "Recently
+Deleted" → 30-day pg_cron purge; every read filters `deleted_at IS NULL`.
+
+```
 accounts
-  worlds                       (per account; free tier limited)
-    categories                 (icon; position: float)
+  worlds                       (per account; free tier limited; deleted_at)
+    categories                 (icon; position: float; deleted_at)
       schema_fields            (typed; owned by category; position: float)
     tags                       (world-scoped; name; renameable in one place)
-    subjects                   (one category; archived_at timestamptz nullable — NULL = active)
+    subjects                   (one category; deleted_at timestamptz nullable — NULL = live, ADR 0005)
       subject_tags             (join: which tags a subject holds)
       field_values             (this subject's value per applicable field)
       facts                    (ordered plain text + @{id} markers; position: float)
