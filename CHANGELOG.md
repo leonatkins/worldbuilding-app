@@ -7,6 +7,21 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Subject CRUD + tags + field values (roadmap step 7):**
+  - Subjects: minimal name-only create (redirects into the new subject page),
+    sortable list (localStorage), inline rename, category change (clears field
+    values with a counted confirm), and soft delete with Recently Deleted.
+  - Subject page (§6.7 layout, minus facts): inline name, category, tag pills with
+    autocomplete + create, the schema-field value block, and inbound backlinks.
+  - Field values for all 10 types with hybrid storage — scalars in `scalar_value`,
+    Link in `linked_subject_id`, List in `list_value_subjects`. Date is freeform
+    text with a no-AI learned-autofill from the world's own past dates; Link/List
+    use a searchable subject typeahead. List/Link writes keep `relationships`
+    (backlinks) in sync via delete-then-insert.
+  - Backlinks render grouped by source field name (no fragile inverse grammar).
+  - Tags: `tags` + `subject_tags` (migration 0004), world-scoped and
+    case-insensitively unique per world; rename propagates everywhere.
+  - Spec: `docs/step-7-subject-crud-spec.md`.
 - **Category + schema editor (roadmap step 6):** manage a world's categories and
   each category's typed schema fields.
   - Category manager on `/worlds/[worldId]`: create (curated emoji picker +

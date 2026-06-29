@@ -16,9 +16,15 @@ function currentWorldId(pathname: string): string | null {
   return match ? match[1] : null;
 }
 
+function currentCategoryId(pathname: string): string | null {
+  const match = pathname.match(/^\/worlds\/[^/]+\/categories\/([^/]+)/);
+  return match ? match[1] : null;
+}
+
 export function CreateMenu() {
   const pathname = usePathname();
   const worldId = currentWorldId(pathname);
+  const categoryId = currentCategoryId(pathname);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -70,6 +76,20 @@ export function CreateMenu() {
               className={item}
             >
               New category
+            </Link>
+          )}
+          {worldId && (
+            <Link
+              href={
+                categoryId
+                  ? `/worlds/${worldId}/categories/${categoryId}`
+                  : `/worlds/${worldId}`
+              }
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className={item}
+            >
+              New subject
             </Link>
           )}
         </div>

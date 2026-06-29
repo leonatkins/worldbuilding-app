@@ -7,8 +7,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { activeOnly } from "@/lib/db/soft-delete";
+import { activeOnly, deletedOnly } from "@/lib/db/soft-delete";
 import { SchemaEditor, type SchemaField } from "./schema-editor";
+import {
+  SubjectsList,
+  type Subject,
+  type DeletedSubject,
+} from "./subjects-list";
 
 type Props = { params: Promise<{ worldId: string; categoryId: string }> };
 
@@ -46,6 +51,20 @@ export default async function CategoryPage({ params }: Props) {
   const fields = (fieldData ?? []) as SchemaField[];
   const categories = (categoryData ?? []) as { id: string; name: string }[];
 
+  const [{ data: subjectData }, { data: deletedSubjectData }] = await Promise.all([
+    activeOnly(
+      supabase
+        .from("subjects")
+        .select("id, name, created_at, updated_at")
+        .eq("category_id", categoryId),
+    ),
+    deletedOnly(
+      supabase.from("subjects").select("id, name").eq("category_id", categoryId),
+    ),
+  ]);
+  const subjects = (subjectData ?? []) as Subject[];
+  const deletedSubjects = (deletedSubjectData ?? []) as DeletedSubject[];
+
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-12">
       <div className="space-y-1">
@@ -71,6 +90,13 @@ export default async function CategoryPage({ params }: Props) {
         categoryId={categoryId}
         fields={fields}
         categories={categories}
+      />
+
+      <SubjectsList
+        worldId={worldId}
+        categoryId={categoryId}
+        subjects={subjects}
+        deletedSubjects={deletedSubjects}
       />
     </main>
   );

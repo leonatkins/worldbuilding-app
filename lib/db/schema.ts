@@ -270,3 +270,40 @@ export const relationships = pgTable(
     unique().on(t.fromSubjectId, t.toSubjectId, t.origin, t.factId, t.fieldId),
   ],
 );
+
+/* -------------------------------------------------------------------------- */
+/* Tags (step 7)                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A world-scoped, renameable label applied to subjects (PRD §5). Normalized (not
+ * a text[] on subjects) so a rename updates everywhere in one write. Names are
+ * unique per world, case-insensitively — enforced by a `lower(name)` unique index
+ * hand-added in the migration (drizzle can't express the expression index here),
+ * unlike the duplicate-allowing names elsewhere. Stored bare; the `#` is render-only.
+ */
+export const tags = pgTable("tags", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  accountId: accountId(),
+  worldId: uuid("world_id")
+    .notNull()
+    .references(() => worlds.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  createdAt: createdAt(),
+});
+
+/** Join table: which tags a subject holds. Composite PK, both sides CASCADE. */
+export const subjectTags = pgTable(
+  "subject_tags",
+  {
+    subjectId: uuid("subject_id")
+      .notNull()
+      .references(() => subjects.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+    accountId: accountId(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.subjectId, t.tagId] })],
+);
