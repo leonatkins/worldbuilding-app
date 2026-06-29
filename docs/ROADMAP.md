@@ -14,7 +14,7 @@ Status: ✅ done · 🚧 in progress · ⬜ not started
 | 3 | **Auth** — Supabase email + Google, protected routes, account bootstrap | ✅ |
 | 4 | **Data model migration #1** — worlds, categories, schema_fields, subjects, field_values, facts, relationships | ✅ |
 | 5 | **World CRUD** — create/switch/rename/delete, default categories on creation | ✅ |
-| 6 | **Category + schema editor** — categories (CRUD, reorder, icon) + schema field *definitions* (typed, configure, reorder). No subjects; writes **no** `field_values` (apply-to-subjects is automatic via hide-empty). | ⬜ |
+| 6 | **Category + schema editor** — categories (CRUD, reorder, icon) + schema field *definitions* (typed, configure, reorder). No subjects; writes **no** `field_values` (apply-to-subjects is automatic via hide-empty). | ✅ |
 | 7 | **Subject CRUD** — create/edit/archive, tags (adds `tags`+`subject_tags`, migration #2), list view, **subject page + inline field-*value* editing** (first `field_values` **and** `relationships` writes). `!`/facts layer on later. | ⬜ |
 | 8 | **Facts engine** — text + `@{id}` markers, ordered entry, inline edit, drag reorder | ⬜ |
 | 9 | **@mention autocomplete** — typeahead, live render, raw backlinks | ⬜ |

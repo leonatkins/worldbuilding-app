@@ -9,6 +9,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
 import { WorldSwitcher } from "./world-switcher";
+import { CreateMenu } from "./create-menu";
 
 export default async function AppLayout({
   children,
@@ -43,6 +44,7 @@ export default async function AppLayout({
           <WorldSwitcher worlds={worlds} />
         </div>
         <div className="flex items-center gap-3 text-sm text-neutral-500">
+          <CreateMenu />
           <span className="hidden sm:inline">{user.email}</span>
           <form action={signOut}>
             <button

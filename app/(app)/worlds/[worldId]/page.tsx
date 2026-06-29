@@ -1,22 +1,20 @@
 /**
- * A world's home (step 5 — minimal). Resolves the world by id via the Supabase
- * client; RLS means a world the user doesn't own (or a bad id) returns no row, so
- * we 404. Lists the seeded categories to confirm creation worked. The category /
- * subject surfaces are fleshed out in step 6+.
+ * A world's home = the category manager (step 6). Resolves the world by id; RLS +
+ * the deleted_at filter mean a foreign, missing, or soft-deleted world returns no
+ * row → 404. Loads the world's live categories (for the manager) and soft-deleted
+ * ones (for Recently Deleted), then hands them to the client island.
  */
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { activeOnly, deletedOnly } from "@/lib/db/soft-delete";
+import {
+  CategoryManager,
+  type Category,
+  type DeletedCategory,
+} from "./category-manager";
 
-type WorldPageProps = {
-  params: Promise<{ worldId: string }>;
-};
-
-type Category = {
-  id: string;
-  name: string;
-  icon: string | null;
-  position: number;
-};
+type WorldPageProps = { params: Promise<{ worldId: string }> };
 
 export default async function WorldPage({ params }: WorldPageProps) {
   const { worldId } = await params;
@@ -31,39 +29,42 @@ export default async function WorldPage({ params }: WorldPageProps) {
 
   if (!world) notFound();
 
-  const { data: categoryData } = await supabase
-    .from("categories")
-    .select("id, name, icon, position")
-    .eq("world_id", worldId)
-    .is("deleted_at", null)
-    .order("position");
+  const [{ data: active }, { data: deleted }] = await Promise.all([
+    activeOnly(
+      supabase
+        .from("categories")
+        .select("id, name, icon, position")
+        .eq("world_id", worldId)
+        .order("position"),
+    ),
+    deletedOnly(
+      supabase.from("categories").select("id, name").eq("world_id", worldId),
+    ),
+  ]);
 
-  const categories = (categoryData ?? []) as Category[];
+  const categories = (active ?? []) as Category[];
+  const deletedCategories = (deleted ?? []) as DeletedCategory[];
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight">{world.name}</h1>
+      <div className="space-y-1">
+        <Link
+          href="/"
+          className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-800 hover:underline dark:hover:text-neutral-200"
+        >
+          ← All worlds
+        </Link>
+        <h1 className="text-3xl font-semibold tracking-tight">{world.name}</h1>
+        <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
+          Categories group the subjects in your world. Drag to reorder.
+        </p>
+      </div>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-neutral-500">Categories</h2>
-        {categories.length === 0 ? (
-          <p className="text-sm text-neutral-500">No categories in this world.</p>
-        ) : (
-          <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
-            {categories.map((category) => (
-              <li
-                key={category.id}
-                className="flex items-center gap-3 px-4 py-3 text-sm"
-              >
-                <span aria-hidden className="text-base">
-                  {category.icon ?? "•"}
-                </span>
-                <span className="font-medium">{category.name}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <CategoryManager
+        worldId={worldId}
+        categories={categories}
+        deletedCategories={deletedCategories}
+      />
     </main>
   );
 }

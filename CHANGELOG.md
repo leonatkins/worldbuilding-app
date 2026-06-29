@@ -7,6 +7,22 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Category + schema editor (roadmap step 6):** manage a world's categories and
+  each category's typed schema fields.
+  - Category manager on `/worlds/[worldId]`: create (curated emoji picker +
+    suggested quick-picks), rename, drag-reorder (`dnd-kit`, midpoint `position`),
+    and soft delete. Deleting a category referenced by another category's
+    List/Link field opens an actionable panel to delete or re-point each blocker.
+  - Category page `/worlds/[worldId]/categories/[categoryId]` with an inline schema
+    editor: add/edit/drag-reorder/delete fields across all 10 types with per-type
+    config (options, scale bounds, unit, target category).
+  - Global `+` create menu in the top bar; route-level loading skeletons.
+  - Spec: `docs/step-6-category-schema-editor-spec.md`.
+- **Soft delete (ADR 0005):** every Delete is now soft — items move to a
+  "Recently Deleted" view, are restorable, and are hard-purged after 30 days
+  (best-effort `pg_cron`). Applied to worlds (step-5 retrofit) and categories;
+  `deleted_at` added to `worlds`/`categories`/`subjects` (migrations 0002/0003).
+  Reads filter `deleted_at IS NULL` via shared `activeOnly`/`deletedOnly` helpers.
 - **World CRUD (roadmap step 5):** create, switch, rename, and delete worlds.
   - Creating a world seeds five default categories (Characters, Locations,
     Factions, Items, Systems) atomically (undo-on-failure); a 🎲 button suggests
@@ -50,5 +66,9 @@ All notable changes to this project are documented here. Format follows
   `lib/mentions`, `lib/supabase`).
 - Drizzle ORM config and empty schema; Supabase browser/server client stubs.
 - Baseline project files: README, `.env.example`, `.gitignore`.
+
+### Changed
+- World delete is no longer immediate — it moves the world to "Recently Deleted"
+  (restorable for 30 days) instead of hard-deleting (ADR 0005).
 
 [Unreleased]: https://example.com/compare
