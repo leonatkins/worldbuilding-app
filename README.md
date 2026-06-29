@@ -12,9 +12,11 @@ never pushed on you.
 
 ## Status
 
-Early development. Architecture, tooling, **auth** (step 3), the **data model**
-(step 4), and **world CRUD** (step 5) are in place; subjects and facts are next.
-See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Early development. In place: architecture, tooling, **auth** (step 3), the
+**data model** (step 4), **world CRUD** (step 5), the **category + schema
+editor** (step 6), and **subject CRUD with tags and field values** (step 7), plus
+project-wide **soft delete** ([ADR 0005](docs/adr/0005-soft-delete-recently-deleted.md)).
+The **facts engine** (step 8) is next. See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Stack
 
@@ -28,6 +30,26 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 - Hosting: Vercel + Supabase cloud
 
 AI features are specified in the PRD but **not built** in this phase.
+
+## Data model
+
+The ownership spine is `account → worlds → categories → subjects`, with typed
+schema fields defined per category and values stored per subject:
+
+- **worlds / categories / subjects** carry a `deleted_at` for soft delete
+  (Recently Deleted → 30-day purge); every read filters live rows.
+- **schema_fields** define a category's typed fields across 10 types (Text,
+  Number, Boolean, Select, MultiSelect, Date, Scale, Color, Link, List), with
+  type-specific config in typed columns.
+- **field_values** use hybrid storage — scalars in `scalar_value` (jsonb), a
+  single Link in `linked_subject_id`, List members in `list_value_subjects`.
+- **tags / subject_tags** are world-scoped, case-insensitively unique labels;
+  rename propagates everywhere.
+- **relationships** are directed backlinks derived from List/Link fields (and,
+  later, fact `@{id}` mentions), discriminated by `origin`.
+
+Every table has a denormalized `account_id` (DEFAULT `auth.uid()`) with an
+own-rows RLS policy, so ownership is enforced by Postgres on every query.
 
 ## Setup
 
@@ -85,6 +107,8 @@ docs/     PRD, design spec, roadmap
 - [Product PRD](worldbuilding-prd.md)
 - [Technical design spec](docs/design.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Architecture review (2026-06)](docs/architecture-review-2026-06.md)
+- [Open questions](docs/open-questions.md)
 - [Changelog](CHANGELOG.md)
 
 ## License
