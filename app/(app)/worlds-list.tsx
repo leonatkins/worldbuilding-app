@@ -19,6 +19,8 @@ import {
   createWorld,
   renameWorld,
   deleteWorld,
+  restoreWorld,
+  purgeWorld,
   type WorldResult,
 } from "@/app/actions/worlds";
 import { randomWorldName } from "@/lib/world-names";
@@ -29,6 +31,12 @@ export type World = {
   name: string;
   created_at: string;
   updated_at: string;
+};
+
+export type DeletedWorld = {
+  id: string;
+  name: string;
+  deleted_at: string;
 };
 
 type SortKey =
@@ -94,7 +102,13 @@ function sortWorlds(worlds: World[], sort: SortKey): World[] {
   }
 }
 
-export function WorldsList({ worlds }: { worlds: World[] }) {
+export function WorldsList({
+  worlds,
+  deletedWorlds,
+}: {
+  worlds: World[];
+  deletedWorlds: DeletedWorld[];
+}) {
   const sort = useSyncExternalStore(subscribeSort, readSort, () => DEFAULT_SORT);
   const sorted = useMemo(() => sortWorlds(worlds, sort), [worlds, sort]);
 
@@ -133,7 +147,83 @@ export function WorldsList({ worlds }: { worlds: World[] }) {
           </ul>
         </div>
       )}
+
+      <RecentlyDeleted worlds={deletedWorlds} />
     </div>
+  );
+}
+
+function RecentlyDeleted({ worlds }: { worlds: DeletedWorld[] }) {
+  const [open, setOpen] = useState(false);
+
+  if (worlds.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-sm text-neutral-500 transition hover:text-neutral-800 dark:hover:text-neutral-200"
+        aria-expanded={open}
+      >
+        <span
+          aria-hidden
+          className={`text-xs transition-transform ${open ? "rotate-90" : ""}`}
+        >
+          ▸
+        </span>
+        Recently deleted ({worlds.length})
+      </button>
+
+      {open && (
+        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+          {worlds.map((world) => (
+            <DeletedWorldRow key={world.id} world={world} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function DeletedWorldRow({ world }: { world: DeletedWorld }) {
+  const [, restoreAction, restoring] = useActionState<WorldResult | null, FormData>(
+    async (_prev, formData) => restoreWorld(formData),
+    null,
+  );
+  const [, purgeAction, purging] = useActionState<WorldResult | null, FormData>(
+    async (_prev, formData) => purgeWorld(formData),
+    null,
+  );
+
+  return (
+    <li className="flex items-center justify-between gap-3 px-4 py-3">
+      <span className="min-w-0 flex-1 truncate text-sm text-neutral-500 line-through">
+        {world.name}
+      </span>
+      <div className="flex shrink-0 items-center gap-1 text-sm">
+        <form action={restoreAction}>
+          <input type="hidden" name="worldId" value={world.id} />
+          <button
+            type="submit"
+            disabled={restoring}
+            className="rounded-md px-2 py-1 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-50 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+          >
+            {restoring ? "Restoring…" : "Restore"}
+          </button>
+        </form>
+        <form action={purgeAction}>
+          <input type="hidden" name="worldId" value={world.id} />
+          <button
+            type="submit"
+            disabled={purging}
+            className="rounded-md px-2 py-1 text-neutral-500 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950 dark:hover:text-red-400"
+          >
+            {purging ? "Deleting…" : "Delete now"}
+          </button>
+        </form>
+      </div>
+    </li>
   );
 }
 
@@ -303,8 +393,8 @@ function DeleteConfirm({ world, onCancel }: { world: World; onCancel: () => void
       <input type="hidden" name="worldId" value={world.id} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-neutral-700 dark:text-neutral-300">
-          Delete <span className="font-medium">{world.name}</span>? This permanently
-          removes all of its subjects and facts.
+          Delete <span className="font-medium">{world.name}</span>? It moves to
+          Recently Deleted — restore it any time within 30 days.
         </p>
         <div className="flex shrink-0 items-center gap-2">
           <button

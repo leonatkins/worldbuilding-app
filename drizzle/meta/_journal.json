@@ -15,6 +15,20 @@
       "when": 1782579144675,
       "tag": "0001_data_model",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782719752541,
+      "tag": "0002_soft_delete_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782719768930,
+      "tag": "0003_drop_archived_at",
+      "breakpoints": true
     }
   ]
 }

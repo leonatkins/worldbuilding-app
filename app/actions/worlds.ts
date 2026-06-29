@@ -83,8 +83,49 @@ export async function renameWorld(formData: FormData): Promise<WorldResult> {
   return { error: "" };
 }
 
-/** Delete a world. CASCADE (step 4) removes its categories/subjects/facts. */
+/**
+ * Soft-delete a world (ADR 0005): stamps `deleted_at`, moving it to "Recently
+ * Deleted" (restorable for 30 days, then a pg_cron job hard-deletes it, which
+ * CASCADEs children). Children are NOT touched here — they simply become
+ * unreachable while the world is hidden, so restore is lossless. RLS scopes to
+ * owner.
+ */
 export async function deleteWorld(formData: FormData): Promise<WorldResult> {
+  const worldId = String(formData.get("worldId") ?? "");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("worlds")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", worldId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  return { error: "" };
+}
+
+/** Restore a soft-deleted world from Recently Deleted (lossless — children intact). */
+export async function restoreWorld(formData: FormData): Promise<WorldResult> {
+  const worldId = String(formData.get("worldId") ?? "");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("worlds")
+    .update({ deleted_at: null })
+    .eq("id", worldId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  return { error: "" };
+}
+
+/**
+ * Permanently delete a world now ("Delete now" in Recently Deleted). The real
+ * hard delete; CASCADE (step 4) removes its categories/subjects/facts.
+ */
+export async function purgeWorld(formData: FormData): Promise<WorldResult> {
   const worldId = String(formData.get("worldId") ?? "");
 
   const supabase = await createClient();

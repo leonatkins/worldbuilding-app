@@ -26,6 +26,7 @@ export default async function WorldPage({ params }: WorldPageProps) {
     .from("worlds")
     .select("id, name")
     .eq("id", worldId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (!world) notFound();
@@ -34,6 +35,7 @@ export default async function WorldPage({ params }: WorldPageProps) {
     .from("categories")
     .select("id, name, icon, position")
     .eq("world_id", worldId)
+    .is("deleted_at", null)
     .order("position");
 
   const categories = (categoryData ?? []) as Category[];

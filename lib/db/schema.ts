@@ -88,6 +88,15 @@ const updatedAt = () =>
 /** Fractional ordering key — midpoint insertion, rebalance if exhausted. */
 const position = () => doublePrecision("position").notNull();
 
+/**
+ * Soft-delete marker (ADR 0005). NULL = live; non-NULL = in "Recently Deleted"
+ * since that time. A `pg_cron` job hard-deletes rows older than 30 days. Present
+ * on worlds, categories, and subjects. Every read must filter `deleted_at IS NULL`
+ * (door 1 / app code) — RLS is ownership-only and the trash view must still read
+ * deleted rows. See lib/db/soft-delete.ts.
+ */
+const deletedAt = () => timestamp("deleted_at", { withTimezone: true });
+
 /* -------------------------------------------------------------------------- */
 /* Accounts (step 3) — identity mirror; FK to auth.users, bootstrap trigger,  */
 /* and RLS all live in the accounts migration's raw SQL, not here.            */
@@ -109,6 +118,7 @@ export const worlds = pgTable("worlds", {
   name: text("name").notNull(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
+  deletedAt: deletedAt(),
 });
 
 /** A group of subjects within a world (e.g. Characters, Locations). */
@@ -123,6 +133,7 @@ export const categories = pgTable("categories", {
   position: position(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
+  deletedAt: deletedAt(),
 });
 
 /**
@@ -163,9 +174,10 @@ export const subjects = pgTable("subjects", {
     .notNull()
     .references(() => worlds.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
+  // Soft delete (ADR 0005), formerly archived_at.
+  deletedAt: deletedAt(),
 });
 
 /**

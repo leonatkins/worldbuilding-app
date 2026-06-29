@@ -26,6 +26,7 @@ export default async function AppLayout({
   const { data: worldData } = await supabase
     .from("worlds")
     .select("id, name")
+    .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   const worlds = worldData ?? [];
 
