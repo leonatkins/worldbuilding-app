@@ -7,6 +7,28 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **@mention autocomplete (roadmap step 9):** facts become a live reference graph.
+  - Type `@` in a fact to mention any subject in the world — a caret-anchored,
+    non-covering typeahead (world-scoped search, recently-edited by default,
+    exact-name match first; ↑/↓/Enter/Tab to pick, Esc/space to dismiss). The
+    composer/editor are now a constrained `contentEditable` with atomic mention
+    chips ([ADR 0007](docs/adr/0007-mention-input-handrolled-contenteditable.md)),
+    not a textarea; paste is coerced to plain text.
+  - Stored `@{id}` markers render as live, **rename-safe** links resolved in one
+    batch per page. A soft-deleted target renders grayed with an inline **Restore**
+    popover; a purged target renders "unknown/deleted" with a **Replace** popover.
+    Hovering a mention (or a backlink) shows a lazy, cached card — the subject's
+    category + filled fields.
+  - Saving a fact mirrors its mentions into the `relationships` table
+    (`syncFactRelationships`, delete-then-insert, self-references skipped), driving
+    the **Referenced by** rail.
+  - **Referenced by** moved to a right side-rail (stacks on narrow screens),
+    grouped by source subject and combining fact + field origins; a backlink hides
+    when the source subject *or* its source fact is soft-deleted, and returns on
+    restore (ADR 0006 Option A read filter).
+  - `lib/facts` (`parseFact`/`serializeFact`/`mentionedIds`, unit-tested) and the
+    fact half of `lib/mentions` (`resolveMentions`) are now implemented.
+  - Spec: `docs/step-9-mention-autocomplete-spec.md`.
 - **Facts engine (roadmap step 8):** a subject's primary content.
   - Fast-capture composer (Enter to save, Shift+Enter for a newline; the cursor
     returns to a fresh input after each save). In-progress *new* fact text is
@@ -98,6 +120,9 @@ All notable changes to this project are documented here. Format follows
 - Baseline project files: README, `.env.example`, `.gitignore`.
 
 ### Changed
+- "Referenced by" now groups inbound links by **source subject** (combining fact
+  and field origins) in a side-rail, replacing the step-7 grouping by source field
+  name.
 - Editing a field value now also bumps the subject's `updated_at`, so value edits
   count toward "Last edited" sort (previously only name/category changes did).
 - World delete is no longer immediate — it moves the world to "Recently Deleted"

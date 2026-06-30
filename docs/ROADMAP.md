@@ -17,7 +17,7 @@ Status: ✅ done · 🚧 in progress · ⬜ not started
 | 6 | **Category + schema editor** — categories (CRUD, reorder, icon) + schema field *definitions* (typed, configure, reorder). No subjects; writes **no** `field_values` (apply-to-subjects is automatic via hide-empty). | ✅ |
 | 7 | **Subject CRUD** — create/edit/archive, tags (adds `tags`+`subject_tags`, migration #2), list view, **subject page + inline field-*value* editing** (first `field_values` **and** `relationships` writes). `!`/facts layer on later. | ✅ |
 | 8 | **Facts engine** — text + `@{id}` markers, ordered entry, inline edit, drag reorder | ✅ |
-| 9 | **@mention autocomplete** — typeahead, live render, raw backlinks | ⬜ |
+| 9 | **@mention autocomplete** — typeahead, live render, raw backlinks | ✅ |
 | 10 | **Backlink organization** — select backlinks → promote to List fields | ⬜ |
 | 11 | **`!` field autocomplete** — inline schema fill + create-field | ⬜ |
 | 12 | **Search & filtering** — names + fact content, category/tag filters, tag browser | ⬜ |

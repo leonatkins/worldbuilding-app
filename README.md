@@ -16,10 +16,12 @@ Early development. In place: architecture, tooling, **auth** (step 3), the
 **data model** (step 4), **world CRUD** (step 5), the **category + schema
 editor** (step 6), **subject CRUD with tags and field values** (step 7), and the
 **facts engine** (step 8) — fast-capture facts with drag-reorder, draft autosave,
-and soft delete — plus project-wide **soft delete**
+and soft delete — and **`@mention` autocomplete** (step 9) — type `@` to mention
+any subject, with rename-safe live links, a hover card, and a "Referenced by"
+rail. Plus project-wide **soft delete**
 ([ADR 0005](docs/adr/0005-soft-delete-recently-deleted.md)) with ancestor
 reachability ([ADR 0006](docs/adr/0006-ancestor-reachability-tombstone.md)).
-**`@mention` autocomplete** (step 9) is next. See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+**Backlink organization** (step 10) is next. See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Stack
 
@@ -49,8 +51,8 @@ schema fields defined per category and values stored per subject:
   single Link in `linked_subject_id`, List members in `list_value_subjects`.
 - **tags / subject_tags** are world-scoped, case-insensitively unique labels;
   rename propagates everywhere.
-- **relationships** are directed backlinks derived from List/Link fields (and,
-  later, fact `@{id}` mentions), discriminated by `origin`.
+- **relationships** are directed backlinks derived from List/Link fields and fact
+  `@{id}` mentions, discriminated by `origin`.
 
 Every table has a denormalized `account_id` (DEFAULT `auth.uid()`) with an
 own-rows RLS policy, so ownership is enforced by Postgres on every query.
