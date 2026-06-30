@@ -9,6 +9,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { activeOnly, deletedOnly } from "@/lib/db/soft-delete";
+import { mentionedIds } from "@/lib/facts";
+import { resolveMentions, type ResolvedMention } from "@/lib/mentions";
 import { Tombstone } from "@/app/(app)/_components/tombstone";
 import { SubjectPage, type FieldValueState } from "./subject-page";
 import type { SchemaField } from "../../categories/[categoryId]/schema-editor";
@@ -114,42 +116,30 @@ export default async function SubjectRoute({ params }: Props) {
   });
   const allTags = (worldTagData ?? []) as { id: string; name: string }[];
 
-  // Inbound field backlinks (origin = field).
+  // Inbound backlinks — both fact and field origins (step 9). The "Referenced by"
+  // rail groups by source subject; the field-name grouping is gone.
   const { data: backlinkData } = await supabase
     .from("relationships")
-    .select("from_subject_id, field_id")
-    .eq("to_subject_id", subjectId)
-    .eq("origin", "field");
+    .select("from_subject_id, origin, fact_id")
+    .eq("to_subject_id", subjectId);
   const backlinkRows = (backlinkData ?? []) as {
     from_subject_id: string;
-    field_id: string | null;
+    origin: "fact" | "field";
+    fact_id: string | null;
   }[];
 
-  // Resolve all referenced subject + field names in batch.
+  // Resolve Link/List field-value subject names in batch (still per the schema block).
   const referencedSubjectIds = new Set<string>();
   fieldValues.forEach((fv) => fv.linked_subject_id && referencedSubjectIds.add(fv.linked_subject_id));
   listRows.forEach((r) => referencedSubjectIds.add(r.subject_id));
-  backlinkRows.forEach((r) => referencedSubjectIds.add(r.from_subject_id));
 
-  const backlinkFieldIds = Array.from(
-    new Set(backlinkRows.map((r) => r.field_id).filter((id): id is string => !!id)),
-  );
-
-  const [{ data: refSubjects }, { data: backlinkFields }] = await Promise.all([
-    referencedSubjectIds.size
-      ? activeOnly(
-          supabase.from("subjects").select("id, name").in("id", Array.from(referencedSubjectIds)),
-        )
-      : Promise.resolve({ data: [] }),
-    backlinkFieldIds.length
-      ? supabase.from("schema_fields").select("id, name").in("id", backlinkFieldIds)
-      : Promise.resolve({ data: [] }),
-  ]);
+  const { data: refSubjects } = referencedSubjectIds.size
+    ? await activeOnly(
+        supabase.from("subjects").select("id, name").in("id", Array.from(referencedSubjectIds)),
+      )
+    : { data: [] };
   const subjectName = new Map(
     ((refSubjects ?? []) as { id: string; name: string }[]).map((s) => [s.id, s.name]),
-  );
-  const fieldName = new Map(
-    ((backlinkFields ?? []) as { id: string; name: string }[]).map((f) => [f.id, f.name]),
   );
 
   // Build per-field value state.
@@ -211,22 +201,6 @@ export default async function SubjectRoute({ params }: Props) {
     }
   }
 
-  // Group backlinks by field name.
-  const backlinkGroups = new Map<string, { id: string; name: string }[]>();
-  for (const row of backlinkRows) {
-    const label = row.field_id ? fieldName.get(row.field_id) ?? "Linked" : "Linked";
-    const arr = backlinkGroups.get(label) ?? [];
-    const name = subjectName.get(row.from_subject_id);
-    if (name && !arr.some((s) => s.id === row.from_subject_id)) {
-      arr.push({ id: row.from_subject_id, name });
-    }
-    backlinkGroups.set(label, arr);
-  }
-  const backlinks = Array.from(backlinkGroups.entries()).map(([label, subjects]) => ({
-    label,
-    subjects,
-  }));
-
   // Facts (step 8): live ones ordered by position, plus the Recently Deleted set.
   const [{ data: factData }, { data: deletedFactData }] = await Promise.all([
     activeOnly(
@@ -239,8 +213,55 @@ export default async function SubjectRoute({ params }: Props) {
   const facts = (factData ?? []) as { id: string; body: string; position: number }[];
   const deletedFacts = (deletedFactData ?? []) as { id: string; body: string }[];
 
+  // Resolve every mention across this subject's facts in one batch (rename-safe,
+  // step 9). Live + deleted facts so the Recently Deleted previews resolve too.
+  const factMentionIds = Array.from(
+    new Set(facts.concat(deletedFacts.map((f) => ({ ...f, position: 0 }))).flatMap((f) => mentionedIds(f.body))),
+  );
+  const mentionMap = await resolveMentions(supabase, factMentionIds);
+  const factMentions: Record<string, ResolvedMention> = Object.fromEntries(mentionMap);
+
+  // Backlinks (Option A read filter): keep a source only if the source subject is
+  // live; fact-origin rows additionally require the source fact to be live. Group
+  // by source subject, dedup across origins, attach the source's category name.
+  const backlinkSubjectIds = Array.from(new Set(backlinkRows.map((r) => r.from_subject_id)));
+  const backlinkFactIds = Array.from(
+    new Set(backlinkRows.map((r) => r.fact_id).filter((id): id is string => !!id)),
+  );
+  const [{ data: sourceSubjects }, { data: sourceFacts }] = await Promise.all([
+    backlinkSubjectIds.length
+      ? activeOnly(
+          supabase
+            .from("subjects")
+            .select("id, name, category:categories(name)")
+            .in("id", backlinkSubjectIds),
+        )
+      : Promise.resolve({ data: [] }),
+    backlinkFactIds.length
+      ? activeOnly(supabase.from("facts").select("id").in("id", backlinkFactIds))
+      : Promise.resolve({ data: [] }),
+  ]);
+  const sourceSubjectById = new Map(
+    ((sourceSubjects ?? []) as unknown as {
+      id: string;
+      name: string;
+      category: { name: string } | null;
+    }[]).map((s) => [s.id, { name: s.name, category: s.category?.name ?? null }]),
+  );
+  const liveFactIds = new Set(((sourceFacts ?? []) as { id: string }[]).map((f) => f.id));
+
+  const seenBacklink = new Set<string>();
+  const backlinks: { id: string; name: string; category: string | null }[] = [];
+  for (const row of backlinkRows) {
+    if (row.origin === "fact" && (!row.fact_id || !liveFactIds.has(row.fact_id))) continue;
+    const src = sourceSubjectById.get(row.from_subject_id);
+    if (!src || seenBacklink.has(row.from_subject_id)) continue;
+    seenBacklink.add(row.from_subject_id);
+    backlinks.push({ id: row.from_subject_id, name: src.name, category: src.category });
+  }
+
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-12">
       <Link
         href={`/worlds/${worldId}/categories/${subject.category_id}`}
         className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-800 hover:underline dark:hover:text-neutral-200"
@@ -261,6 +282,7 @@ export default async function SubjectRoute({ params }: Props) {
         dateSuggestions={dateSuggestions}
         facts={facts}
         deletedFacts={deletedFacts}
+        mentions={factMentions}
       />
     </main>
   );

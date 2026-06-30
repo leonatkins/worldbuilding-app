@@ -11,7 +11,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { validateFactBody } from "@/lib/validation";
-import { syncFactRelationships } from "@/lib/mentions";
+import { resolveMentions, syncFactRelationships, type ResolvedMention } from "@/lib/mentions";
 import { activeOnly } from "@/lib/db/soft-delete";
 import { formatScalarValue } from "@/lib/field-values";
 import type { FieldType } from "@/lib/schema-fields";
@@ -181,6 +181,19 @@ export async function replaceMention(formData: FormData): Promise<FactResult> {
   await touchSubject(supabase, subjectId);
   revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
   return {};
+}
+
+/**
+ * Batch-resolve mention ids to their current state for client-side chip rendering
+ * (the mention input restoring a draft on reload). A thin server wrapper over
+ * lib/mentions; returns a plain record for the RSC boundary.
+ */
+export async function resolveMentionRefs(
+  ids: string[],
+): Promise<Record<string, ResolvedMention>> {
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  return Object.fromEntries(await resolveMentions(supabase, ids));
 }
 
 export type SubjectCard = {

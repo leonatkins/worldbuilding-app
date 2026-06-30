@@ -22,7 +22,8 @@ import { formatScalarValue } from "@/lib/field-values";
 import { FIELD_TYPE_LABELS, type FieldType } from "@/lib/schema-fields";
 import { MAX_NAME_LENGTH } from "@/lib/validation";
 import { SubjectPicker } from "./subject-picker";
-import { FactsList, type Fact, type DeletedFact } from "./facts-list";
+import { FactsList, type Fact, type DeletedFact, type MentionMap } from "./facts-list";
+import { SubjectHoverCard } from "./mention";
 import type { SchemaField } from "../../categories/[categoryId]/schema-editor";
 
 export type FieldValueState =
@@ -40,76 +41,84 @@ type Props = {
   valuesByField: Record<string, FieldValueState>;
   tags: Ref[];
   allTags: Ref[];
-  backlinks: { label: string; subjects: Ref[] }[];
+  backlinks: Backlink[];
   dateSuggestions: string[];
   facts: Fact[];
   deletedFacts: DeletedFact[];
+  mentions: MentionMap;
 };
+
+/** One inbound reference, grouped by source subject (fact + field origins merged). */
+type Backlink = { id: string; name: string; category: string | null };
 
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100";
 
 export function SubjectPage(props: Props) {
-  const { worldId, subject, category, categories, fields, valuesByField, tags, allTags, backlinks, dateSuggestions, facts, deletedFacts } =
+  const { worldId, subject, category, categories, fields, valuesByField, tags, allTags, backlinks, dateSuggestions, facts, deletedFacts, mentions } =
     props;
 
   const filled = fields.filter((f) => valuesByField[f.id]);
   const empty = fields.filter((f) => !valuesByField[f.id]);
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="space-y-3">
-        <NameEditor worldId={worldId} subject={subject} />
-        <CategoryChanger
+    // Two columns on wide screens; the "Referenced by" rail stacks below on narrow.
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_15rem]">
+      <div className="flex min-w-0 flex-col gap-8">
+        <header className="space-y-3">
+          <NameEditor worldId={worldId} subject={subject} />
+          <CategoryChanger
+            worldId={worldId}
+            subject={subject}
+            category={category}
+            categories={categories}
+            valueCount={Object.keys(valuesByField).length}
+          />
+          <TagsEditor worldId={worldId} subjectId={subject.id} tags={tags} allTags={allTags} />
+        </header>
+
+        <FactsList
+          worldId={worldId}
+          subjectId={subject.id}
+          facts={facts}
+          deletedFacts={deletedFacts}
+          mentions={mentions}
+        />
+
+        <FieldsBlock
           worldId={worldId}
           subject={subject}
-          category={category}
-          categories={categories}
-          valueCount={Object.keys(valuesByField).length}
+          filled={filled}
+          empty={empty}
+          valuesByField={valuesByField}
+          dateSuggestions={dateSuggestions}
         />
-        <TagsEditor worldId={worldId} subjectId={subject.id} tags={tags} allTags={allTags} />
-      </header>
 
-      <FactsList
-        worldId={worldId}
-        subjectId={subject.id}
-        facts={facts}
-        deletedFacts={deletedFacts}
-      />
-
-      <FieldsBlock
-        worldId={worldId}
-        subject={subject}
-        filled={filled}
-        empty={empty}
-        valuesByField={valuesByField}
-        dateSuggestions={dateSuggestions}
-      />
+        <DeleteSubject worldId={worldId} subject={subject} />
+      </div>
 
       {backlinks.length > 0 && (
-        <section className="space-y-2">
+        <aside className="space-y-2 lg:border-l lg:border-neutral-200 lg:pl-6 dark:lg:border-neutral-800">
           <h2 className="text-sm font-medium text-neutral-500">Referenced by</h2>
-          <div className="space-y-1.5">
-            {backlinks.map((g) => (
-              <div key={g.label} className="flex flex-wrap items-baseline gap-2 text-sm">
-                <span className="text-neutral-500">{g.label}</span>
-                <span className="text-neutral-300 dark:text-neutral-600">→</span>
-                {g.subjects.map((s) => (
+          <ul className="space-y-1.5">
+            {backlinks.map((b) => (
+              <li key={b.id}>
+                <SubjectHoverCard subjectId={b.id}>
                   <Link
-                    key={s.id}
-                    href={`/worlds/${worldId}/subjects/${s.id}`}
-                    className="rounded-full bg-neutral-100 px-2 py-0.5 text-neutral-700 transition hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                    href={`/worlds/${worldId}/subjects/${b.id}`}
+                    className="text-sm text-neutral-700 underline-offset-4 transition hover:text-neutral-950 hover:underline dark:text-neutral-200 dark:hover:text-neutral-50"
                   >
-                    {s.name}
+                    {b.name}
                   </Link>
-                ))}
-              </div>
+                </SubjectHoverCard>
+                {b.category && (
+                  <span className="ml-1.5 text-xs text-neutral-400">{b.category}</span>
+                )}
+              </li>
             ))}
-          </div>
-        </section>
+          </ul>
+        </aside>
       )}
-
-      <DeleteSubject worldId={worldId} subject={subject} />
     </div>
   );
 }
