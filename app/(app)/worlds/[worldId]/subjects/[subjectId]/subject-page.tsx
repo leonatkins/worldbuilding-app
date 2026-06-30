@@ -22,6 +22,7 @@ import { formatScalarValue } from "@/lib/field-values";
 import { FIELD_TYPE_LABELS, type FieldType } from "@/lib/schema-fields";
 import { MAX_NAME_LENGTH } from "@/lib/validation";
 import { SubjectPicker } from "./subject-picker";
+import { FactsList, type Fact, type DeletedFact } from "./facts-list";
 import type { SchemaField } from "../../categories/[categoryId]/schema-editor";
 
 export type FieldValueState =
@@ -41,13 +42,15 @@ type Props = {
   allTags: Ref[];
   backlinks: { label: string; subjects: Ref[] }[];
   dateSuggestions: string[];
+  facts: Fact[];
+  deletedFacts: DeletedFact[];
 };
 
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100";
 
 export function SubjectPage(props: Props) {
-  const { worldId, subject, category, categories, fields, valuesByField, tags, allTags, backlinks, dateSuggestions } =
+  const { worldId, subject, category, categories, fields, valuesByField, tags, allTags, backlinks, dateSuggestions, facts, deletedFacts } =
     props;
 
   const filled = fields.filter((f) => valuesByField[f.id]);
@@ -66,6 +69,13 @@ export function SubjectPage(props: Props) {
         />
         <TagsEditor worldId={worldId} subjectId={subject.id} tags={tags} allTags={allTags} />
       </header>
+
+      <FactsList
+        worldId={worldId}
+        subjectId={subject.id}
+        facts={facts}
+        deletedFacts={deletedFacts}
+      />
 
       <FieldsBlock
         worldId={worldId}
@@ -359,7 +369,7 @@ function FieldsBlock({
 
       {filled.length === 0 && !addingField ? (
         <p className="text-sm text-neutral-400">
-          No fields filled in. Add one below — or just write facts (coming soon).
+          No fields filled in. Add one below — or just write facts above.
         </p>
       ) : (
         <dl className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">

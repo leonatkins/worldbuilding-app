@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { activeOnly, deletedOnly } from "@/lib/db/soft-delete";
+import { Tombstone } from "@/app/(app)/_components/tombstone";
 import { SchemaEditor, type SchemaField } from "./schema-editor";
 import {
   SubjectsList,
@@ -21,15 +22,28 @@ export default async function CategoryPage({ params }: Props) {
   const { worldId, categoryId } = await params;
   const supabase = await createClient();
 
+  // Resolve the category *with* its ancestor world's deleted_at, without the
+  // active filter, so we can distinguish "missing/not owned" (404) from "exists
+  // but unreachable because it — or its world — is in Recently Deleted"
+  // (Tombstone, ADR 0006).
   const { data: category } = await supabase
     .from("categories")
-    .select("id, name, icon, world_id")
+    .select("id, name, icon, world_id, deleted_at, world:worlds(name, deleted_at)")
     .eq("id", categoryId)
     .eq("world_id", worldId)
-    .is("deleted_at", null)
     .maybeSingle();
 
   if (!category) notFound();
+
+  const world = category.world as unknown as { name: string; deleted_at: string | null } | null;
+  if (world?.deleted_at) {
+    return <Tombstone kind="world" name={world.name} worldId={worldId} />;
+  }
+  if (category.deleted_at) {
+    return (
+      <Tombstone kind="category" name={category.name} worldId={worldId} categoryId={categoryId} />
+    );
+  }
 
   const [{ data: fieldData }, { data: categoryData }] = await Promise.all([
     supabase

@@ -8,7 +8,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { activeOnly } from "@/lib/db/soft-delete";
+import { activeOnly, deletedOnly } from "@/lib/db/soft-delete";
+import { Tombstone } from "@/app/(app)/_components/tombstone";
 import { SubjectPage, type FieldValueState } from "./subject-page";
 import type { SchemaField } from "../../categories/[categoryId]/schema-editor";
 
@@ -18,22 +19,52 @@ export default async function SubjectRoute({ params }: Props) {
   const { worldId, subjectId } = await params;
   const supabase = await createClient();
 
+  // Resolve the subject together with its ancestor category + world deleted_at,
+  // without the active filter, so we can tell "missing/not owned" (404) apart
+  // from "exists but unreachable because it or an ancestor is in Recently
+  // Deleted" (Tombstone, ADR 0006). Embedding the category here also fixes Q1 —
+  // its name was previously resolved with no filter and could show stale.
   const { data: subject } = await supabase
     .from("subjects")
-    .select("id, name, category_id, world_id")
+    .select(
+      "id, name, category_id, world_id, deleted_at, category:categories(id, name, deleted_at), world:worlds(name, deleted_at)",
+    )
     .eq("id", subjectId)
     .eq("world_id", worldId)
-    .is("deleted_at", null)
     .maybeSingle();
   if (!subject) notFound();
 
-  const [{ data: category }, { data: categoryList }, { data: fieldData }] =
+  const category = subject.category as unknown as
+    | { id: string; name: string; deleted_at: string | null }
+    | null;
+  const world = subject.world as unknown as { name: string; deleted_at: string | null } | null;
+  if (world?.deleted_at) {
+    return <Tombstone kind="world" name={world.name} worldId={worldId} />;
+  }
+  if (category?.deleted_at) {
+    return (
+      <Tombstone
+        kind="category"
+        name={category.name}
+        worldId={worldId}
+        categoryId={subject.category_id}
+      />
+    );
+  }
+  if (subject.deleted_at) {
+    return (
+      <Tombstone
+        kind="subject"
+        name={subject.name}
+        worldId={worldId}
+        categoryId={subject.category_id}
+        subjectId={subject.id}
+      />
+    );
+  }
+
+  const [{ data: categoryList }, { data: fieldData }] =
     await Promise.all([
-      supabase
-        .from("categories")
-        .select("id, name")
-        .eq("id", subject.category_id)
-        .maybeSingle(),
       activeOnly(
         supabase.from("categories").select("id, name").eq("world_id", worldId).order("position"),
       ),
@@ -196,6 +227,18 @@ export default async function SubjectRoute({ params }: Props) {
     subjects,
   }));
 
+  // Facts (step 8): live ones ordered by position, plus the Recently Deleted set.
+  const [{ data: factData }, { data: deletedFactData }] = await Promise.all([
+    activeOnly(
+      supabase.from("facts").select("id, body, position").eq("subject_id", subjectId),
+    ).order("position"),
+    deletedOnly(
+      supabase.from("facts").select("id, body").eq("subject_id", subjectId),
+    ).order("deleted_at", { ascending: false }),
+  ]);
+  const facts = (factData ?? []) as { id: string; body: string; position: number }[];
+  const deletedFacts = (deletedFactData ?? []) as { id: string; body: string }[];
+
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-12">
       <Link
@@ -216,6 +259,8 @@ export default async function SubjectRoute({ params }: Props) {
         allTags={allTags}
         backlinks={backlinks}
         dateSuggestions={dateSuggestions}
+        facts={facts}
+        deletedFacts={deletedFacts}
       />
     </main>
   );
