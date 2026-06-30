@@ -1,15 +1,17 @@
 "use server";
 
 /**
- * Server-only fact CRUD (step 8). Door 1; RLS-scoped; account_id auto-stamped.
- * Facts use soft delete (ADR 0005/0006). A fact is plain text in `body` — the
- * `@{id}` mention parser and fact-origin `relationships` writes arrive in step 9,
- * so this layer treats `body` as opaque text. Every mutation stamps the parent
- * `subjects.updated_at` (open-questions Q3) so "Last edited" sort stays honest.
+ * Server-only fact CRUD (step 8/9). Door 1; RLS-scoped; account_id auto-stamped.
+ * Facts use soft delete (ADR 0005/0006). A fact is plain text in `body` with
+ * `@{id}` mention markers (ADR 0001); on create/update we mirror those mentions
+ * into fact-origin `relationships` rows (step 9, `syncFactRelationships`). Every
+ * mutation stamps the parent `subjects.updated_at` (open-questions Q3) so the
+ * "Last edited" sort stays honest.
  */
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { validateFactBody } from "@/lib/validation";
+import { syncFactRelationships } from "@/lib/mentions";
 
 export type FactResult = { error?: string };
 
@@ -44,11 +46,14 @@ export async function createFact(formData: FormData): Promise<FactResult> {
 
   const supabase = await createClient();
   const position = await nextFactPosition(supabase, subjectId);
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("facts")
-    .insert({ subject_id: subjectId, body: validated.body, position });
+    .insert({ subject_id: subjectId, body: validated.body, position })
+    .select("id")
+    .single();
 
-  if (error) return { error: error.message };
+  if (error || !data) return { error: error?.message ?? "Could not save fact." };
+  await syncFactRelationships(supabase, data.id, subjectId, validated.body);
   await touchSubject(supabase, subjectId);
   revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
   return {};
@@ -68,6 +73,7 @@ export async function updateFact(formData: FormData): Promise<FactResult> {
     .eq("id", factId);
 
   if (error) return { error: error.message };
+  await syncFactRelationships(supabase, factId, subjectId, validated.body);
   await touchSubject(supabase, subjectId);
   revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
   return {};
