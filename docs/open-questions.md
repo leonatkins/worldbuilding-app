@@ -83,6 +83,12 @@ manual purge fallback (a SQL snippet / admin action) in case it isn't; (3)
 consider a lightweight "purge on access" safety net (when a user opens Recently
 Deleted, hard-delete anything already >30 days) so correctness doesn't depend on
 cron alone.
+**Update (step 8, 2026-06-30):** applying migration 0005 logged `extension
+"pg_cron" already exists` and did *not* fire the best-effort "Skipping" NOTICE —
+so the extension is enabled and `cron.schedule('purge-facts', …)` ran cleanly.
+Strong signal that the worlds/categories/subjects jobs registered too. Still TODO:
+explicitly `SELECT * FROM cron.job;` to confirm all four rows, and decide on items
+(2)/(3) (manual fallback + purge-on-access). There are now **four** purge jobs.
 
 ## UX / interaction
 

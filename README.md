@@ -14,9 +14,12 @@ never pushed on you.
 
 Early development. In place: architecture, tooling, **auth** (step 3), the
 **data model** (step 4), **world CRUD** (step 5), the **category + schema
-editor** (step 6), and **subject CRUD with tags and field values** (step 7), plus
-project-wide **soft delete** ([ADR 0005](docs/adr/0005-soft-delete-recently-deleted.md)).
-The **facts engine** (step 8) is next. See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+editor** (step 6), **subject CRUD with tags and field values** (step 7), and the
+**facts engine** (step 8) — fast-capture facts with drag-reorder, draft autosave,
+and soft delete — plus project-wide **soft delete**
+([ADR 0005](docs/adr/0005-soft-delete-recently-deleted.md)) with ancestor
+reachability ([ADR 0006](docs/adr/0006-ancestor-reachability-tombstone.md)).
+**`@mention` autocomplete** (step 9) is next. See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Stack
 
@@ -36,8 +39,9 @@ AI features are specified in the PRD but **not built** in this phase.
 The ownership spine is `account → worlds → categories → subjects`, with typed
 schema fields defined per category and values stored per subject:
 
-- **worlds / categories / subjects** carry a `deleted_at` for soft delete
-  (Recently Deleted → 30-day purge); every read filters live rows.
+- **worlds / categories / subjects / facts** carry a `deleted_at` for soft delete
+  (Recently Deleted → 30-day purge); every read filters live rows, and a page
+  resolves only if its whole ancestor chain is live (else a Tombstone).
 - **schema_fields** define a category's typed fields across 10 types (Text,
   Number, Boolean, Select, MultiSelect, Date, Scale, Color, Link, List), with
   type-specific config in typed columns.

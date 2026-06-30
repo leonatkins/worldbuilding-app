@@ -54,3 +54,8 @@ the column is renamed `deleted_at` and the concept generalizes to all entities.
 - **Step 5 retrofit:** `deleteWorld` becomes soft; `/` gains a Recently Deleted
   view.
 - `pg_cron` must be enabled on the Supabase project (extension).
+- **Facts joined the model (step 8 / ADR 0006):** `facts.deleted_at` added
+  (migration 0005) with a `purge-facts` job, so "any future deletable entity" now
+  explicitly includes facts. Facts are non-routable, so they have no Tombstone of
+  their own — a deleted fact simply leaves its subject's live list and sits in
+  the subject's Recently Deleted section.

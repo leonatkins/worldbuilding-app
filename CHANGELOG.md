@@ -7,6 +7,21 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Facts engine (roadmap step 8):** a subject's primary content.
+  - Fast-capture composer (Enter to save, Shift+Enter for a newline; the cursor
+    returns to a fresh input after each save). In-progress *new* fact text is
+    autosaved to `localStorage` and restored on reload — never lose typing.
+  - Inline edit (Save commits; Cancel/Escape reverts), drag-reorder (`dnd-kit`,
+    midpoint `position`), and soft delete with a per-subject Recently Deleted
+    section. `facts.deleted_at` + a `purge-facts` 30-day `pg_cron` job
+    (migration 0005). Fact body is plain text; `@mention` rendering arrives in
+    step 9.
+  - Spec: `docs/step-8-facts-engine-spec.md`.
+- **Reachability + Tombstone ([ADR 0006](docs/adr/0006-ancestor-reachability-tombstone.md)):**
+  a world/category/subject page now resolves only if it *and* every ancestor is
+  live. A live child under a soft-deleted parent — or a self-deleted entity —
+  shows a friendly **Tombstone** with a one-click Restore instead of a stale page
+  or a bare 404. (Fixes the subject page resolving its category name unfiltered.)
 - **Subject CRUD + tags + field values (roadmap step 7):**
   - Subjects: minimal name-only create (redirects into the new subject page),
     sortable list (localStorage), inline rename, category change (clears field
@@ -83,6 +98,8 @@ All notable changes to this project are documented here. Format follows
 - Baseline project files: README, `.env.example`, `.gitignore`.
 
 ### Changed
+- Editing a field value now also bumps the subject's `updated_at`, so value edits
+  count toward "Last edited" sort (previously only name/category changes did).
 - World delete is no longer immediate — it moves the world to "Recently Deleted"
   (restorable for 30 days) instead of hard-deleting (ADR 0005).
 
