@@ -11,9 +11,31 @@ product decision.
 
 ---
 
+## Resolved in the step-8 grill (2026-06-30) → ADR 0006
+
+- **Q1 + Q2 (reachability):** a routable entity (world/category/subject) resolves
+  only if it *and* every ancestor is live; a broken chain — or a self-deleted
+  entity — renders a reusable **Tombstone** screen (names the deleted ancestor,
+  offers Restore) instead of a 404. Facts are non-routable and inherit
+  reachability via their subject. Resolvers now walk the ancestor chain; the
+  unfiltered category-name resolve (Q1) is fixed by the same change. The skeleton
+  mascot slots into the Tombstone at the visual-polish pass; step 8 ships it with
+  a placeholder. See [`adr/0006-ancestor-reachability-tombstone.md`](adr/0006-ancestor-reachability-tombstone.md).
+- **Q3 (`updated_at`):** any write to a subject's facts or field values stamps
+  `subjects.updated_at = now()` — fact create/edit/(soft-)delete and
+  `setScalar/setLink/setList/clearFieldValue`. Step 8 implements this.
+- **Q6 (never lose typing):** Save is always explicit. Dismissing an editor is a
+  **cancel** (revert to the saved value) — never a silent commit, never a
+  surprise discard. The only thing persisted as a draft is **brand-new,
+  never-saved content** (a new fact), via localStorage, restored on return. Edits
+  and field values need no draft (the saved value is the fallback). Applies the
+  fix to the scalar field editor too.
+
+---
+
 ## Correctness / consistency
 
-### Q1 🟡 Subject page resolves its category without the active filter
+### ~~Q1 🟡 Subject page resolves its category without the active filter~~ — resolved, ADR 0006
 `subjects/[subjectId]/page.tsx` loads the subject's own category by id with no
 `deleted_at IS NULL`. A subject whose category was soft-deleted still renders the
 category name and back-link as if live. Every *other* read is filtered via
@@ -24,7 +46,7 @@ treat the category as gone — either 404 the subject too, or show a "category w
 deleted — restore it or move this subject" banner. At minimum, filter the resolve
 so the stale name doesn't show. Tie this to Q2.
 
-### Q2 🔵 What is the experience of a child under a soft-deleted parent?
+### ~~Q2 🔵 What is the experience of a child under a soft-deleted parent?~~ — resolved, ADR 0006
 Soft delete deliberately doesn't cascade (so restore is lossless), which means
 live subjects can sit under a deleted category, and live categories under a
 deleted world. Today nothing surfaces them because the *lists* are filtered, but
@@ -35,7 +57,7 @@ its ancestors are live." Implement as an ancestor-active check on the direct-URL
 resolves (subject → category → world). Cheap, and it makes the soft-delete model
 fully coherent. Worth a short grill before step 8 since facts add another child.
 
-### Q3 🟢 Field-value edits don't bump `subjects.updated_at`
+### ~~Q3 🟢 Field-value edits don't bump `subjects.updated_at`~~ — resolved (step 8 implements)
 Editing a field value writes `field_values` but not the parent subject's
 `updated_at`, so "Last edited" sort and the future dashboard's "recently edited"
 miss value edits.
@@ -64,7 +86,7 @@ cron alone.
 
 ## UX / interaction
 
-### Q6 🟢 Scalar editor "Done" without "Save" drops input
+### ~~Q6 🟢 Scalar editor "Done" without "Save" drops input~~ — resolved (cancel-on-dismiss; draft only for new content)
 Dismissing an inline scalar editor without an explicit save discards typed text
 silently. Minor now, but it contradicts the "never lose typing" principle that
 fact autosave (memory `fact_draft_autosave`) will establish in step 8.
