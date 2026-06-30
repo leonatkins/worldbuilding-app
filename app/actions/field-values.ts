@@ -18,6 +18,18 @@ export type FieldValueResult = { error?: string };
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
 
+/**
+ * Touch the parent subject after a value write so "Last edited" sort and the
+ * future dashboard's "recently edited" reflect value edits, not just name/fact
+ * edits (open-questions Q3).
+ */
+async function touchSubject(supabase: Supa, subjectId: string) {
+  await supabase
+    .from("subjects")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", subjectId);
+}
+
 /** Rebuild the field-origin relationship rows for one (subject, field). */
 async function syncFieldRelationships(
   supabase: Supa,
@@ -100,6 +112,7 @@ export async function setScalarValue(formData: FormData): Promise<FieldValueResu
   );
 
   if (error) return { error: error.message };
+  await touchSubject(supabase, subjectId);
   revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
   return {};
 }
@@ -119,6 +132,7 @@ export async function setLinkValue(formData: FormData): Promise<FieldValueResult
       .eq("subject_id", subjectId)
       .eq("field_id", fieldId);
     await syncFieldRelationships(supabase, subjectId, fieldId, []);
+    await touchSubject(supabase, subjectId);
     revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
     return {};
   }
@@ -135,6 +149,7 @@ export async function setLinkValue(formData: FormData): Promise<FieldValueResult
   if (error) return { error: error.message };
 
   await syncFieldRelationships(supabase, subjectId, fieldId, [linkedSubjectId]);
+  await touchSubject(supabase, subjectId);
   revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
   return {};
 }
@@ -162,6 +177,7 @@ export async function setListValue(formData: FormData): Promise<FieldValueResult
       .eq("subject_id", subjectId)
       .eq("field_id", fieldId);
     await syncFieldRelationships(supabase, subjectId, fieldId, []);
+    await touchSubject(supabase, subjectId);
     revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
     return {};
   }
@@ -183,6 +199,7 @@ export async function setListValue(formData: FormData): Promise<FieldValueResult
   if (insError) return { error: insError.message };
 
   await syncFieldRelationships(supabase, subjectId, fieldId, subjectIds);
+  await touchSubject(supabase, subjectId);
   revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
   return {};
 }
@@ -199,6 +216,7 @@ export async function clearFieldValue(formData: FormData): Promise<FieldValueRes
     .eq("subject_id", subjectId)
     .eq("field_id", fieldId);
   await syncFieldRelationships(supabase, subjectId, fieldId, []);
+  await touchSubject(supabase, subjectId);
 
   revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
   return {};

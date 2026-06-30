@@ -91,7 +91,7 @@ const position = () => doublePrecision("position").notNull();
 /**
  * Soft-delete marker (ADR 0005). NULL = live; non-NULL = in "Recently Deleted"
  * since that time. A `pg_cron` job hard-deletes rows older than 30 days. Present
- * on worlds, categories, and subjects. Every read must filter `deleted_at IS NULL`
+ * on worlds, categories, subjects, and facts. Every read must filter `deleted_at IS NULL`
  * (door 1 / app code) — RLS is ownership-only and the trash view must still read
  * deleted rows. See lib/db/soft-delete.ts.
  */
@@ -194,6 +194,7 @@ export const facts = pgTable("facts", {
   position: position(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
+  deletedAt: deletedAt(),
 });
 
 /**
