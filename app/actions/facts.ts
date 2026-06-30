@@ -12,6 +12,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { validateFactBody } from "@/lib/validation";
 import { syncFactRelationships } from "@/lib/mentions";
+import { activeOnly } from "@/lib/db/soft-delete";
+import { formatScalarValue } from "@/lib/field-values";
+import type { FieldType } from "@/lib/schema-fields";
 
 export type FactResult = { error?: string };
 
@@ -144,4 +147,124 @@ export async function purgeFact(formData: FormData): Promise<FactResult> {
   if (error) return { error: error.message };
   revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
   return {};
+}
+
+/**
+ * Rewrite every `@{oldId}` marker in a fact to `@{newId}` — the "Replace" action
+ * on a purged mention (step 9 §5). Re-runs the relationship sync afterwards. The
+ * literal-string replace is precise: ids never contain `{`/`}`.
+ */
+export async function replaceMention(formData: FormData): Promise<FactResult> {
+  const worldId = String(formData.get("worldId") ?? "");
+  const subjectId = String(formData.get("subjectId") ?? "");
+  const factId = String(formData.get("factId") ?? "");
+  const oldId = String(formData.get("oldId") ?? "");
+  const newId = String(formData.get("newId") ?? "");
+  if (!oldId || !newId) return { error: "Pick a subject to link." };
+
+  const supabase = await createClient();
+  const { data: fact } = await supabase
+    .from("facts")
+    .select("body")
+    .eq("id", factId)
+    .maybeSingle();
+  if (!fact) return { error: "Fact not found." };
+
+  const body = String(fact.body).split(`@{${oldId}}`).join(`@{${newId}}`);
+  const { error } = await supabase
+    .from("facts")
+    .update({ body, updated_at: new Date().toISOString() })
+    .eq("id", factId);
+
+  if (error) return { error: error.message };
+  await syncFactRelationships(supabase, factId, subjectId, body);
+  await touchSubject(supabase, subjectId);
+  revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
+  return {};
+}
+
+export type SubjectCard = {
+  name: string;
+  category: string | null;
+  fields: { name: string; value: string }[];
+};
+
+/**
+ * Lazy hover-tooltip payload for a mention or backlink (step 9 §5): the subject's
+ * category and its filled schema fields (hide-empty, same rule as the subject
+ * page). Live subjects only; returns null when missing/unowned/deleted.
+ */
+export async function getSubjectCard(subjectId: string): Promise<SubjectCard | null> {
+  const supabase = await createClient();
+
+  const { data: subject } = await activeOnly(
+    supabase
+      .from("subjects")
+      .select("id, name, category_id, category:categories(name)")
+      .eq("id", subjectId),
+  ).maybeSingle();
+  if (!subject) return null;
+
+  const category = (subject.category as unknown as { name: string } | null)?.name ?? null;
+
+  const [{ data: fieldData }, { data: fvData }] = await Promise.all([
+    supabase
+      .from("schema_fields")
+      .select("id, name, type")
+      .eq("category_id", subject.category_id)
+      .order("position"),
+    supabase
+      .from("field_values")
+      .select("id, field_id, scalar_value, linked_subject_id")
+      .eq("subject_id", subjectId),
+  ]);
+  const schemaFields = (fieldData ?? []) as { id: string; name: string; type: FieldType }[];
+  const fieldValues = (fvData ?? []) as {
+    id: string;
+    field_id: string;
+    scalar_value: unknown;
+    linked_subject_id: string | null;
+  }[];
+
+  // List memberships for any field_values present.
+  const fvIds = fieldValues.map((fv) => fv.id);
+  const { data: lvsData } = fvIds.length
+    ? await supabase
+        .from("list_value_subjects")
+        .select("field_value_id, subject_id")
+        .in("field_value_id", fvIds)
+    : { data: [] };
+  const listRows = (lvsData ?? []) as { field_value_id: string; subject_id: string }[];
+
+  // Resolve referenced (Link/List) subject names in one batch.
+  const refIds = new Set<string>();
+  fieldValues.forEach((fv) => fv.linked_subject_id && refIds.add(fv.linked_subject_id));
+  listRows.forEach((r) => refIds.add(r.subject_id));
+  const { data: refSubjects } = refIds.size
+    ? await activeOnly(supabase.from("subjects").select("id, name").in("id", Array.from(refIds)))
+    : { data: [] };
+  const refName = new Map(
+    ((refSubjects ?? []) as { id: string; name: string }[]).map((s) => [s.id, s.name]),
+  );
+
+  const fields: { name: string; value: string }[] = [];
+  for (const field of schemaFields) {
+    const fv = fieldValues.find((v) => v.field_id === field.id);
+    if (!fv) continue;
+    let value = "";
+    if (field.type === "Link") {
+      value = fv.linked_subject_id ? refName.get(fv.linked_subject_id) ?? "" : "";
+    } else if (field.type === "List") {
+      value = listRows
+        .filter((r) => r.field_value_id === fv.id)
+        .map((r) => refName.get(r.subject_id))
+        .filter((n): n is string => !!n)
+        .join(", ");
+    } else {
+      value = formatScalarValue(field.type, fv.scalar_value);
+    }
+    if (value) fields.push({ name: field.name, value });
+  }
+
+  return { name: subject.name, category, fields };
 }

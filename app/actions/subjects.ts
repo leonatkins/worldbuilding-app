@@ -126,6 +126,45 @@ export async function purgeSubject(formData: FormData): Promise<SubjectResult> {
   return {};
 }
 
+/**
+ * World-scoped typeahead for `@mention` autocomplete (step 9). Unlike
+ * `searchSubjects` (category-scoped, for Link/List pickers) this searches every
+ * live subject in the world. Empty query → the 10 most recently edited (fast
+ * "who was I just working on" capture); otherwise alphabetical with an exact
+ * name match floated to the top to disambiguate identical names.
+ */
+export async function searchSubjectsInWorld(
+  worldId: string,
+  query: string,
+  limit = 10,
+): Promise<{ id: string; name: string; categoryName: string | null }[]> {
+  const supabase = await createClient();
+  const trimmed = query.trim();
+
+  let q = supabase
+    .from("subjects")
+    .select("id, name, category:categories(name)")
+    .eq("world_id", worldId)
+    .is("deleted_at", null)
+    .limit(limit);
+
+  q = trimmed ? q.ilike("name", `%${trimmed}%`).order("name") : q.order("updated_at", { ascending: false });
+
+  const { data } = await q;
+  const rows = ((data ?? []) as unknown as {
+    id: string;
+    name: string;
+    category: { name: string } | null;
+  }[]).map((r) => ({ id: r.id, name: r.name, categoryName: r.category?.name ?? null }));
+
+  // Float an exact (case-insensitive) name match to the front.
+  if (trimmed) {
+    const lower = trimmed.toLowerCase();
+    rows.sort((a, b) => Number(b.name.toLowerCase() === lower) - Number(a.name.toLowerCase() === lower));
+  }
+  return rows;
+}
+
 /** Typeahead search for Link/List pickers: live subjects of a category by name. */
 export async function searchSubjects(
   categoryId: string,
