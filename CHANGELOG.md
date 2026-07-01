@@ -36,6 +36,26 @@ All notable changes to this project are documented here. Format follows
   new password (`updatePassword` now calls `signOut()` before redirecting).
 
 ### Added
+- **Backlink organization (roadmap step 10):** the second bridge from loose
+  facts into schema structure.
+  - The "Referenced by" rail gained a **Select** toggle — check several
+    backlinks and **Promote** them into a List field on the subject you're
+    viewing: add to an existing matching List field (additive — unions with
+    current members, never replaces them) or create a new one inline, no
+    navigation away from the page. Checking one backlink locks the selection
+    to that entry's category (a List field's members are all one category) —
+    mismatched entries disable live rather than letting an invalid selection
+    reach "Promote".
+  - Hovering a backlink now shows a "Referenced via" line: the field label(s)
+    responsible (falling back to the field's own forward name) and/or a
+    "mentioned in N facts" count.
+  - List/Link fields gained an optional **inverse label** — the role name
+    shown from the target's side (e.g. a "Mentor" field can show "Student" on
+    the mentored subject's backlink), configured in the schema editor.
+  - The category page is now **read-only**: schema fields show as a plain
+    summary list, with an "Edit schema" link to a new dedicated
+    `/categories/[categoryId]/schema` route where all mutation (add, edit,
+    delete, reorder, inverse label) now lives.
 - **@mention autocomplete (roadmap step 9):** facts become a live reference graph.
   - Type `@` in a fact to mention any subject in the world — a caret-anchored,
     non-covering typeahead (world-scoped search, recently-edited by default,

@@ -29,6 +29,7 @@ function draftFromForm(formData: FormData): FieldDraft {
   const scaleMaxRaw = formData.get("scaleMax");
   const targetCategoryId = String(formData.get("targetCategoryId") ?? "") || null;
   const unit = String(formData.get("unit") ?? "") || null;
+  const inverseLabel = String(formData.get("inverseLabel") ?? "") || null;
 
   return {
     name: String(formData.get("name") ?? ""),
@@ -38,6 +39,7 @@ function draftFromForm(formData: FormData): FieldDraft {
     scaleMin: scaleMinRaw === null || scaleMinRaw === "" ? null : Number(scaleMinRaw),
     scaleMax: scaleMaxRaw === null || scaleMaxRaw === "" ? null : Number(scaleMaxRaw),
     unit,
+    inverseLabel,
   };
 }
 
@@ -56,7 +58,7 @@ async function nextFieldPosition(
   return (data?.position ?? 0) + 1;
 }
 
-export async function createField(formData: FormData): Promise<FieldResult> {
+export async function createField(formData: FormData): Promise<FieldResult & { id?: string }> {
   const worldId = String(formData.get("worldId") ?? "");
   const categoryId = String(formData.get("categoryId") ?? "");
   const validated = validateField(draftFromForm(formData));
@@ -66,21 +68,26 @@ export async function createField(formData: FormData): Promise<FieldResult> {
   const position = await nextFieldPosition(supabase, categoryId);
   const { config } = validated;
 
-  const { error } = await supabase.from("schema_fields").insert({
-    category_id: categoryId,
-    name: validated.name,
-    type: validated.type,
-    position,
-    target_category_id: config.targetCategoryId,
-    select_options: config.selectOptions,
-    scale_min: config.scaleMin,
-    scale_max: config.scaleMax,
-    unit: config.unit,
-  });
+  const { data, error } = await supabase
+    .from("schema_fields")
+    .insert({
+      category_id: categoryId,
+      name: validated.name,
+      type: validated.type,
+      position,
+      target_category_id: config.targetCategoryId,
+      select_options: config.selectOptions,
+      scale_min: config.scaleMin,
+      scale_max: config.scaleMax,
+      unit: config.unit,
+      inverse_label: config.inverseLabel,
+    })
+    .select("id")
+    .single();
 
-  if (error) return { error: error.message };
+  if (error || !data) return { error: error?.message ?? "Could not create field." };
   revalidatePath(`/worlds/${worldId}/categories/${categoryId}`);
-  return {};
+  return { id: data.id };
 }
 
 export async function updateField(formData: FormData): Promise<FieldResult> {
@@ -103,6 +110,7 @@ export async function updateField(formData: FormData): Promise<FieldResult> {
       scale_min: config.scaleMin,
       scale_max: config.scaleMax,
       unit: config.unit,
+      inverse_label: config.inverseLabel,
       updated_at: new Date().toISOString(),
     })
     .eq("id", fieldId);

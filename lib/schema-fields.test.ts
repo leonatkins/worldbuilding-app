@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateField, isFieldType } from "./schema-fields";
+import { validateField, isFieldType, resolveInverseLabel } from "./schema-fields";
 
 describe("isFieldType", () => {
   it("accepts enum values and rejects others", () => {
@@ -21,6 +21,7 @@ describe("validateField", () => {
         scaleMin: null,
         scaleMax: null,
         unit: null,
+        inverseLabel: null,
       },
     });
   });
@@ -66,5 +67,33 @@ describe("validateField", () => {
   it("keeps an optional unit for Number", () => {
     const ok = validateField({ name: "Population", type: "Number", unit: " people " });
     expect("config" in ok && ok.config.unit).toBe("people");
+  });
+
+  it("keeps an optional, trimmed inverse label for Link/List only", () => {
+    const withLabel = validateField({
+      name: "Mentor",
+      type: "Link",
+      targetCategoryId: "c1",
+      inverseLabel: " Student ",
+    });
+    expect("config" in withLabel && withLabel.config.inverseLabel).toBe("Student");
+
+    const unset = validateField({ name: "Mentor", type: "Link", targetCategoryId: "c1" });
+    expect("config" in unset && unset.config.inverseLabel).toBeNull();
+
+    const notApplicable = validateField({
+      name: "Age",
+      type: "Number",
+      inverseLabel: "ignored",
+    });
+    expect("config" in notApplicable && notApplicable.config.inverseLabel).toBeNull();
+  });
+});
+
+describe("resolveInverseLabel", () => {
+  it("falls back to the forward field name when unset", () => {
+    expect(resolveInverseLabel({ name: "Mentor", inverseLabel: null })).toBe("Mentor");
+    expect(resolveInverseLabel({ name: "Mentor", inverseLabel: "  " })).toBe("Mentor");
+    expect(resolveInverseLabel({ name: "Mentor", inverseLabel: "Student" })).toBe("Student");
   });
 });

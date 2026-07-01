@@ -17,6 +17,7 @@ import {
   setListValue,
   clearFieldValue,
 } from "@/app/actions/field-values";
+import { promoteToListField } from "@/app/actions/backlinks";
 import { applyTag, removeTag } from "@/app/actions/tags";
 import { formatScalarValue } from "@/lib/field-values";
 import { FIELD_TYPE_LABELS, type FieldType } from "@/lib/schema-fields";
@@ -48,8 +49,19 @@ type Props = {
   mentions: MentionMap;
 };
 
-/** One inbound reference, grouped by source subject (fact + field origins merged). */
-type Backlink = { id: string; name: string; category: string | null };
+/**
+ * One inbound reference, grouped by source subject (fact + field origins
+ * merged). `factCount` / `fieldLabels` (step 10) feed the hover "Referenced
+ * via" line; `categoryId` drives the select-mode single-category lock.
+ */
+type Backlink = {
+  id: string;
+  name: string;
+  category: string | null;
+  categoryId: string | null;
+  factCount: number;
+  fieldLabels: string[];
+};
 
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100";
@@ -98,27 +110,263 @@ export function SubjectPage(props: Props) {
       </div>
 
       {backlinks.length > 0 && (
-        <aside className="space-y-2 lg:border-l lg:border-neutral-200 lg:pl-6 dark:lg:border-neutral-800">
-          <h2 className="text-sm font-medium text-neutral-500">Referenced by</h2>
-          <ul className="space-y-1.5">
-            {backlinks.map((b) => (
-              <li key={b.id}>
-                <SubjectHoverCard subjectId={b.id}>
-                  <Link
-                    href={`/worlds/${worldId}/subjects/${b.id}`}
-                    className="text-sm text-neutral-700 underline-offset-4 transition hover:text-neutral-950 hover:underline dark:text-neutral-200 dark:hover:text-neutral-50"
-                  >
-                    {b.name}
-                  </Link>
+        <BacklinksRail
+          worldId={worldId}
+          subjectId={subject.id}
+          categoryId={subject.categoryId}
+          backlinks={backlinks}
+          fields={fields}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * "Referenced by" side-rail (step 9) + select-mode promotion into a List field
+ * (step 10). Selecting locks the rail to that entry's category — a List
+ * field's members are all one category, so mismatched entries disable live
+ * rather than letting an invalid selection reach "Promote".
+ */
+function BacklinksRail({
+  worldId,
+  subjectId,
+  categoryId,
+  backlinks,
+  fields,
+}: {
+  worldId: string;
+  subjectId: string;
+  categoryId: string;
+  backlinks: Backlink[];
+  fields: SchemaField[];
+}) {
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showPromote, setShowPromote] = useState(false);
+
+  const lockedCategoryId =
+    selected.size > 0 ? backlinks.find((b) => selected.has(b.id))?.categoryId ?? null : null;
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function exit() {
+    setSelecting(false);
+    setSelected(new Set());
+    setShowPromote(false);
+  }
+
+  const matchingListFields = lockedCategoryId
+    ? fields.filter((f) => f.type === "List" && f.target_category_id === lockedCategoryId)
+    : [];
+
+  return (
+    <aside className="space-y-2 lg:border-l lg:border-neutral-200 lg:pl-6 dark:lg:border-neutral-800">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium text-neutral-500">Referenced by</h2>
+        <button
+          type="button"
+          onClick={() => (selecting ? exit() : setSelecting(true))}
+          className="text-xs text-neutral-400 underline-offset-4 transition hover:text-neutral-900 hover:underline dark:hover:text-neutral-100"
+        >
+          {selecting ? "Done" : "Select"}
+        </button>
+      </div>
+
+      <ul className="space-y-1.5">
+        {backlinks.map((b) => {
+          const isSelected = selected.has(b.id);
+          const disabled = selecting && lockedCategoryId != null && b.categoryId !== lockedCategoryId && !isSelected;
+          const reason = [
+            ...b.fieldLabels,
+            b.factCount > 0 ? `mentioned in ${b.factCount} fact${b.factCount === 1 ? "" : "s"}` : null,
+          ]
+            .filter((x): x is string => !!x)
+            .join(" · ");
+
+          return (
+            <li key={b.id} className="flex items-center gap-2">
+              {selecting && (
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  disabled={disabled}
+                  onChange={() => toggle(b.id)}
+                  aria-label={`Select ${b.name}`}
+                  title={disabled ? "List fields hold one category — deselect to change" : undefined}
+                  className="h-3.5 w-3.5 shrink-0 accent-neutral-900 disabled:opacity-30 dark:accent-neutral-100"
+                />
+              )}
+              <span className={disabled ? "opacity-40" : ""}>
+                <SubjectHoverCard subjectId={b.id} reason={reason || undefined}>
+                  {selecting ? (
+                    <span className="text-sm text-neutral-700 dark:text-neutral-200">{b.name}</span>
+                  ) : (
+                    <Link
+                      href={`/worlds/${worldId}/subjects/${b.id}`}
+                      className="text-sm text-neutral-700 underline-offset-4 transition hover:text-neutral-950 hover:underline dark:text-neutral-200 dark:hover:text-neutral-50"
+                    >
+                      {b.name}
+                    </Link>
+                  )}
                 </SubjectHoverCard>
                 {b.category && (
                   <span className="ml-1.5 text-xs text-neutral-400">{b.category}</span>
                 )}
-              </li>
-            ))}
-          </ul>
-        </aside>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+
+      {selected.size > 0 && (
+        <div className="space-y-2 rounded-md bg-neutral-50 p-2 dark:bg-neutral-900">
+          {!showPromote ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPromote(true)}
+                className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900"
+              >
+                Promote {selected.size} to List…
+              </button>
+              <button type="button" onClick={exit} className="text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200">
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <PromotePanel
+              worldId={worldId}
+              subjectId={subjectId}
+              categoryId={categoryId}
+              targetCategoryId={lockedCategoryId!}
+              subjectIds={Array.from(selected)}
+              existingFields={matchingListFields}
+              onDone={exit}
+              onCancel={() => setShowPromote(false)}
+            />
+          )}
+        </div>
       )}
+    </aside>
+  );
+}
+
+function PromotePanel({
+  worldId,
+  subjectId,
+  categoryId,
+  targetCategoryId,
+  subjectIds,
+  existingFields,
+  onDone,
+  onCancel,
+}: {
+  worldId: string;
+  subjectId: string;
+  categoryId: string;
+  targetCategoryId: string;
+  subjectIds: string[];
+  existingFields: SchemaField[];
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [mode, setMode] = useState<"existing" | "new">(existingFields.length > 0 ? "existing" : "new");
+  const [fieldId, setFieldId] = useState(existingFields[0]?.id ?? "");
+  const [newFieldName, setNewFieldName] = useState("");
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function submit() {
+    if (mode === "existing" && !fieldId) {
+      setError("Choose a field.");
+      return;
+    }
+    if (mode === "new" && !newFieldName.trim()) {
+      setError("Name the new field.");
+      return;
+    }
+    const fd = new FormData();
+    fd.set("worldId", worldId);
+    fd.set("subjectId", subjectId);
+    fd.set("categoryId", categoryId);
+    fd.set("targetCategoryId", targetCategoryId);
+    fd.set("subjectIds", JSON.stringify(subjectIds));
+    if (mode === "existing") fd.set("fieldId", fieldId);
+    else fd.set("newFieldName", newFieldName);
+
+    startTransition(async () => {
+      const result = await promoteToListField(fd);
+      if (result.error) setError(result.error);
+      else {
+        router.refresh();
+        onDone();
+      }
+    });
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border border-neutral-200 p-2 dark:border-neutral-800">
+      {existingFields.length > 0 && (
+        <label className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-300">
+          <input type="radio" checked={mode === "existing"} onChange={() => setMode("existing")} />
+          Add to
+          <select
+            value={fieldId}
+            onChange={(e) => {
+              setFieldId(e.target.value);
+              setMode("existing");
+            }}
+            className="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-1.5 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            {existingFields.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <label className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-300">
+        {existingFields.length > 0 ? (
+          <input type="radio" checked={mode === "new"} onChange={() => setMode("new")} />
+        ) : (
+          "Create"
+        )}
+        {existingFields.length > 0 && "or create new"}
+        <input
+          type="text"
+          value={newFieldName}
+          onChange={(e) => {
+            setNewFieldName(e.target.value);
+            setMode("new");
+          }}
+          placeholder="Field name, e.g. Students"
+          className="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-1.5 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-900"
+        />
+      </label>
+      {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={submit}
+          className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+        >
+          {pending ? "Promoting…" : "Promote"}
+        </button>
+        <button type="button" onClick={onCancel} className="text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200">
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }

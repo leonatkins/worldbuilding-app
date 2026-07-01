@@ -68,8 +68,20 @@ export function Mention({
   );
 }
 
-/** Wraps content with a lazy, cached hover card (category + filled fields). */
-export function SubjectHoverCard({ subjectId, children }: { subjectId: string; children: React.ReactNode }) {
+/**
+ * Wraps content with a lazy, cached hover card (category + filled fields). An
+ * optional `reason` (step 10) adds a "Referenced via" line — why this subject
+ * shows up as a backlink (field label(s) and/or a fact-mention count).
+ */
+export function SubjectHoverCard({
+  subjectId,
+  reason,
+  children,
+}: {
+  subjectId: string;
+  reason?: string;
+  children: React.ReactNode;
+}) {
   const [card, setCard] = useState<SubjectCard | null | undefined>(cardCache.get(subjectId));
   const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -109,6 +121,11 @@ export function SubjectHoverCard({ subjectId, children }: { subjectId: string; c
             </span>
           ) : (
             <span className="mt-1 block text-neutral-400">No fields filled in.</span>
+          )}
+          {reason && (
+            <span className="mt-1.5 block border-t border-neutral-100 pt-1.5 text-neutral-400 dark:border-neutral-800">
+              Referenced via {reason}
+            </span>
           )}
         </span>
       )}

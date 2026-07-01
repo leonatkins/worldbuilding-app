@@ -16,7 +16,7 @@ import type { FieldType } from "@/lib/schema-fields";
 
 export type FieldValueResult = { error?: string };
 
-type Supa = Awaited<ReturnType<typeof createClient>>;
+export type Supa = Awaited<ReturnType<typeof createClient>>;
 
 /**
  * Touch the parent subject after a value write so "Last edited" sort and the
@@ -154,23 +154,21 @@ export async function setLinkValue(formData: FormData): Promise<FieldValueResult
   return {};
 }
 
-export async function setListValue(formData: FormData): Promise<FieldValueResult> {
-  const worldId = String(formData.get("worldId") ?? "");
-  const subjectId = String(formData.get("subjectId") ?? "");
-  const fieldId = String(formData.get("fieldId") ?? "");
-
-  let subjectIds: string[];
-  try {
-    const parsed = JSON.parse(String(formData.get("subjectIds") ?? "[]"));
-    subjectIds = Array.isArray(parsed) ? parsed.map((v) => String(v)) : [];
-  } catch {
-    subjectIds = [];
-  }
-
-  const supabase = await createClient();
-
+/**
+ * Write a List field's full member set: `field_values` upsert (scalar/link
+ * columns cleared), `list_value_subjects` replaced wholesale, relationships
+ * resynced. Shared by `setListValue` (replace semantics — whatever the caller
+ * passes IS the new member set) and `promoteToListField` (step 10, additive —
+ * that caller unions the existing members in before calling this).
+ */
+export async function writeListValue(
+  supabase: Supa,
+  subjectId: string,
+  fieldId: string,
+  memberIds: string[],
+): Promise<FieldValueResult> {
   // Empty list = no value: drop the row entirely (cascades list_value_subjects).
-  if (subjectIds.length === 0) {
+  if (memberIds.length === 0) {
     await supabase
       .from("field_values")
       .delete()
@@ -178,7 +176,6 @@ export async function setListValue(formData: FormData): Promise<FieldValueResult
       .eq("field_id", fieldId);
     await syncFieldRelationships(supabase, subjectId, fieldId, []);
     await touchSubject(supabase, subjectId);
-    revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
     return {};
   }
 
@@ -195,11 +192,30 @@ export async function setListValue(formData: FormData): Promise<FieldValueResult
   await supabase.from("list_value_subjects").delete().eq("field_value_id", fv.id);
   const { error: insError } = await supabase
     .from("list_value_subjects")
-    .insert(subjectIds.map((sid) => ({ field_value_id: fv.id, subject_id: sid })));
+    .insert(memberIds.map((sid) => ({ field_value_id: fv.id, subject_id: sid })));
   if (insError) return { error: insError.message };
 
-  await syncFieldRelationships(supabase, subjectId, fieldId, subjectIds);
+  await syncFieldRelationships(supabase, subjectId, fieldId, memberIds);
   await touchSubject(supabase, subjectId);
+  return {};
+}
+
+export async function setListValue(formData: FormData): Promise<FieldValueResult> {
+  const worldId = String(formData.get("worldId") ?? "");
+  const subjectId = String(formData.get("subjectId") ?? "");
+  const fieldId = String(formData.get("fieldId") ?? "");
+
+  let subjectIds: string[];
+  try {
+    const parsed = JSON.parse(String(formData.get("subjectIds") ?? "[]"));
+    subjectIds = Array.isArray(parsed) ? parsed.map((v) => String(v)) : [];
+  } catch {
+    subjectIds = [];
+  }
+
+  const supabase = await createClient();
+  const result = await writeListValue(supabase, subjectId, fieldId, subjectIds);
+  if (result.error) return result;
   revalidatePath(`/worlds/${worldId}/subjects/${subjectId}`);
   return {};
 }

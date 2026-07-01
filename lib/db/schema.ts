@@ -158,6 +158,9 @@ export const schemaFields = pgTable("schema_fields", {
   scaleMin: integer("scale_min"),
   scaleMax: integer("scale_max"),
   unit: text("unit"),
+  // Optional role name shown on the *target* side's backlink (step 10). Only
+  // meaningful for List/Link; falls back to `name` when unset.
+  inverseLabel: text("inverse_label"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

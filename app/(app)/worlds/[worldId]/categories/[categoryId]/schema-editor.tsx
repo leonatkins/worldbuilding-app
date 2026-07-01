@@ -38,6 +38,7 @@ import {
   needsScale,
   needsTargetCategory,
   allowsUnit,
+  summarizeField,
   type FieldType,
 } from "@/lib/schema-fields";
 import { MAX_NAME_LENGTH } from "@/lib/validation";
@@ -53,6 +54,7 @@ export type SchemaField = {
   scale_min: number | null;
   scale_max: number | null;
   unit: string | null;
+  inverse_label: string | null;
 };
 
 type Cat = { id: string; name: string };
@@ -155,17 +157,6 @@ export function SchemaEditor({ worldId, categoryId, fields, categories }: Props)
   );
 }
 
-function summarize(field: SchemaField, categories: Cat[]): string {
-  if (needsTargetCategory(field.type)) {
-    const target = categories.find((c) => c.id === field.target_category_id);
-    return target ? `→ ${target.name}` : "→ (no target)";
-  }
-  if (needsOptions(field.type)) return (field.select_options ?? []).join(", ");
-  if (needsScale(field.type)) return `${field.scale_min}–${field.scale_max}`;
-  if (allowsUnit(field.type) && field.unit) return field.unit;
-  return "";
-}
-
 function FieldRow({
   worldId,
   categoryId,
@@ -202,7 +193,7 @@ function FieldRow({
     );
   }
 
-  const summary = summarize(field, categories);
+  const summary = summarizeField(field, categories);
 
   return (
     <li ref={setNodeRef} style={style} className="flex items-center gap-2 px-4 py-3">
@@ -293,6 +284,7 @@ function FieldForm({
   const [targetCategoryId, setTargetCategoryId] = useState(
     field?.target_category_id ?? "",
   );
+  const [inverseLabel, setInverseLabel] = useState(field?.inverse_label ?? "");
   const [options, setOptions] = useState<string[]>(field?.select_options ?? [""]);
   const [scaleMin, setScaleMin] = useState(field?.scale_min?.toString() ?? "1");
   const [scaleMax, setScaleMax] = useState(field?.scale_max?.toString() ?? "10");
@@ -307,7 +299,10 @@ function FieldForm({
     if (field) fd.set("fieldId", field.id);
     fd.set("name", name);
     fd.set("type", type);
-    if (needsTargetCategory(type)) fd.set("targetCategoryId", targetCategoryId);
+    if (needsTargetCategory(type)) {
+      fd.set("targetCategoryId", targetCategoryId);
+      fd.set("inverseLabel", inverseLabel);
+    }
     if (needsOptions(type)) fd.set("selectOptions", JSON.stringify(options));
     if (needsScale(type)) {
       fd.set("scaleMin", scaleMin);
@@ -352,21 +347,32 @@ function FieldForm({
         </div>
 
         {needsTargetCategory(type) && (
-          <select
-            value={targetCategoryId}
-            onChange={(e) => setTargetCategoryId(e.target.value)}
-            aria-label="Target category"
-            className={inputClass}
-          >
-            <option value="" disabled>
-              Links to which category?
-            </option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+          <>
+            <select
+              value={targetCategoryId}
+              onChange={(e) => setTargetCategoryId(e.target.value)}
+              aria-label="Target category"
+              className={inputClass}
+            >
+              <option value="" disabled>
+                Links to which category?
               </option>
-            ))}
-          </select>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={inverseLabel}
+              onChange={(e) => setInverseLabel(e.target.value)}
+              placeholder="Inverse label (optional) — how the target relates back, e.g. Student"
+              maxLength={MAX_NAME_LENGTH}
+              aria-label="Inverse label"
+              className={inputClass}
+            />
+          </>
         )}
 
         {needsOptions(type) && (

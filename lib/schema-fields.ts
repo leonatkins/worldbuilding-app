@@ -62,6 +62,44 @@ export function isFieldType(v: string): v is FieldType {
   return (FIELD_TYPES as ReadonlyArray<string>).includes(v);
 }
 
+/**
+ * The label shown for a List/Link field's backlink, from the target's side
+ * (step 10). `inverseLabel` is optional — the forward field name is always a
+ * safe fallback, so a backlink is never shown with a blank label.
+ */
+export function resolveInverseLabel(field: { name: string; inverseLabel: string | null }): string {
+  return field.inverseLabel?.trim() || field.name;
+}
+
+/**
+ * A one-line summary of a field's per-type config, shown next to its name in
+ * both the read-only category-page list and the schema editor. Framework-free
+ * (unlike schema-editor.tsx, which is a client component) so a server
+ * component can call it directly.
+ */
+export function summarizeField(
+  field: {
+    type: FieldType;
+    target_category_id: string | null;
+    select_options: string[] | null;
+    scale_min: number | null;
+    scale_max: number | null;
+    unit: string | null;
+    inverse_label: string | null;
+  },
+  categories: { id: string; name: string }[],
+): string {
+  if (needsTargetCategory(field.type)) {
+    const target = categories.find((c) => c.id === field.target_category_id);
+    const base = target ? `→ ${target.name}` : "→ (no target)";
+    return field.inverse_label ? `${base} · inverse: ${field.inverse_label}` : base;
+  }
+  if (needsOptions(field.type)) return (field.select_options ?? []).join(", ");
+  if (needsScale(field.type)) return `${field.scale_min}–${field.scale_max}`;
+  if (allowsUnit(field.type) && field.unit) return field.unit;
+  return "";
+}
+
 /** Raw, per-type config a field carries (matches the schema_fields columns). */
 export type FieldConfig = {
   targetCategoryId: string | null;
@@ -69,6 +107,7 @@ export type FieldConfig = {
   scaleMin: number | null;
   scaleMax: number | null;
   unit: string | null;
+  inverseLabel: string | null;
 };
 
 export type FieldDraft = { name: string; type: FieldType } & Partial<FieldConfig>;
@@ -94,6 +133,7 @@ export function validateField(draft: FieldDraft): FieldValidation {
     scaleMin: null,
     scaleMax: null,
     unit: null,
+    inverseLabel: null,
   };
 
   if (needsTargetCategory(draft.type)) {
@@ -101,6 +141,8 @@ export function validateField(draft: FieldDraft): FieldValidation {
       return { error: "Choose which category this field links to." };
     }
     config.targetCategoryId = draft.targetCategoryId;
+    const inverseLabel = draft.inverseLabel?.trim();
+    config.inverseLabel = inverseLabel ? inverseLabel : null;
   }
 
   if (needsOptions(draft.type)) {

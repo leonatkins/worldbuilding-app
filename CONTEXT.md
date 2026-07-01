@@ -31,3 +31,12 @@ stable id and never by its name; it renders live as the subject's current name
 and drives backlinks. (List and Link schema fields create the same kind of
 reference by other means.)
 _Avoid_: Reference, tag, backlink (backlink is the *inbound* view of a mention)
+
+**Backlink**:
+The inbound view of a Mention (or a List/Link field value): "Referenced by" on a
+subject's page, grouped by source subject — not by field. A List/Link field's
+optional `inverse_label` supplies the role name shown for its own backlinks
+(e.g. "Mentor"); unset, the field's forward name is reused. Selecting several
+backlinks and promoting them into a List field is one of the three ways facts
+crystallize into schema (design §4.3).
+_Avoid_: Reverse mention, inverse reference

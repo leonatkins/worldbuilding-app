@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { activeOnly, deletedOnly } from "@/lib/db/soft-delete";
 import { mentionedIds } from "@/lib/facts";
 import { resolveMentions, type ResolvedMention } from "@/lib/mentions";
+import { resolveInverseLabel } from "@/lib/schema-fields";
 import { Tombstone } from "@/app/(app)/_components/tombstone";
 import { SubjectPage, type FieldValueState } from "./subject-page";
 import type { SchemaField } from "../../categories/[categoryId]/schema-editor";
@@ -73,7 +74,7 @@ export default async function SubjectRoute({ params }: Props) {
       supabase
         .from("schema_fields")
         .select(
-          "id, name, type, position, target_category_id, select_options, scale_min, scale_max, unit",
+          "id, name, type, position, target_category_id, select_options, scale_min, scale_max, unit, inverse_label",
         )
         .eq("category_id", subject.category_id)
         .order("position"),
@@ -117,15 +118,17 @@ export default async function SubjectRoute({ params }: Props) {
   const allTags = (worldTagData ?? []) as { id: string; name: string }[];
 
   // Inbound backlinks — both fact and field origins (step 9). The "Referenced by"
-  // rail groups by source subject; the field-name grouping is gone.
+  // rail groups by source subject; the field-name grouping is gone. `field_id` is
+  // kept (step 10) to resolve a "Referenced via" hover label per origin.
   const { data: backlinkData } = await supabase
     .from("relationships")
-    .select("from_subject_id, origin, fact_id")
+    .select("from_subject_id, origin, fact_id, field_id")
     .eq("to_subject_id", subjectId);
   const backlinkRows = (backlinkData ?? []) as {
     from_subject_id: string;
     origin: "fact" | "field";
     fact_id: string | null;
+    field_id: string | null;
   }[];
 
   // Resolve Link/List field-value subject names in batch (still per the schema block).
@@ -223,42 +226,77 @@ export default async function SubjectRoute({ params }: Props) {
 
   // Backlinks (Option A read filter): keep a source only if the source subject is
   // live; fact-origin rows additionally require the source fact to be live. Group
-  // by source subject, dedup across origins, attach the source's category name.
+  // by source subject, dedup across origins, attach the source's category. The
+  // per-origin detail (fact count, field labels) is kept too (step 10) for the
+  // "Referenced via" hover line — resolved from the full row set, not the dedup.
   const backlinkSubjectIds = Array.from(new Set(backlinkRows.map((r) => r.from_subject_id)));
   const backlinkFactIds = Array.from(
     new Set(backlinkRows.map((r) => r.fact_id).filter((id): id is string => !!id)),
   );
-  const [{ data: sourceSubjects }, { data: sourceFacts }] = await Promise.all([
-    backlinkSubjectIds.length
-      ? activeOnly(
-          supabase
-            .from("subjects")
-            .select("id, name, category:categories(name)")
-            .in("id", backlinkSubjectIds),
-        )
-      : Promise.resolve({ data: [] }),
-    backlinkFactIds.length
-      ? activeOnly(supabase.from("facts").select("id").in("id", backlinkFactIds))
-      : Promise.resolve({ data: [] }),
-  ]);
+  const backlinkFieldIds = Array.from(
+    new Set(backlinkRows.map((r) => r.field_id).filter((id): id is string => !!id)),
+  );
+  const [{ data: sourceSubjects }, { data: sourceFacts }, { data: backlinkFields }] =
+    await Promise.all([
+      backlinkSubjectIds.length
+        ? activeOnly(
+            supabase
+              .from("subjects")
+              .select("id, name, category:categories(id, name)")
+              .in("id", backlinkSubjectIds),
+          )
+        : Promise.resolve({ data: [] }),
+      backlinkFactIds.length
+        ? activeOnly(supabase.from("facts").select("id").in("id", backlinkFactIds))
+        : Promise.resolve({ data: [] }),
+      backlinkFieldIds.length
+        ? supabase.from("schema_fields").select("id, name, inverse_label").in("id", backlinkFieldIds)
+        : Promise.resolve({ data: [] }),
+    ]);
   const sourceSubjectById = new Map(
     ((sourceSubjects ?? []) as unknown as {
       id: string;
       name: string;
-      category: { name: string } | null;
-    }[]).map((s) => [s.id, { name: s.name, category: s.category?.name ?? null }]),
+      category: { id: string; name: string } | null;
+    }[]).map((s) => [
+      s.id,
+      { name: s.name, categoryId: s.category?.id ?? null, categoryName: s.category?.name ?? null },
+    ]),
   );
   const liveFactIds = new Set(((sourceFacts ?? []) as { id: string }[]).map((f) => f.id));
+  const fieldLabelById = new Map(
+    ((backlinkFields ?? []) as { id: string; name: string; inverse_label: string | null }[]).map(
+      (f) => [f.id, resolveInverseLabel({ name: f.name, inverseLabel: f.inverse_label })],
+    ),
+  );
 
-  const seenBacklink = new Set<string>();
-  const backlinks: { id: string; name: string; category: string | null }[] = [];
+  const backlinkById = new Map<
+    string,
+    { id: string; name: string; category: string | null; categoryId: string | null; factCount: number; fieldLabels: string[] }
+  >();
   for (const row of backlinkRows) {
     if (row.origin === "fact" && (!row.fact_id || !liveFactIds.has(row.fact_id))) continue;
     const src = sourceSubjectById.get(row.from_subject_id);
-    if (!src || seenBacklink.has(row.from_subject_id)) continue;
-    seenBacklink.add(row.from_subject_id);
-    backlinks.push({ id: row.from_subject_id, name: src.name, category: src.category });
+    if (!src) continue;
+    let entry = backlinkById.get(row.from_subject_id);
+    if (!entry) {
+      entry = {
+        id: row.from_subject_id,
+        name: src.name,
+        category: src.categoryName,
+        categoryId: src.categoryId,
+        factCount: 0,
+        fieldLabels: [],
+      };
+      backlinkById.set(row.from_subject_id, entry);
+    }
+    if (row.origin === "fact") entry.factCount += 1;
+    else if (row.field_id) {
+      const label = fieldLabelById.get(row.field_id);
+      if (label && !entry.fieldLabels.includes(label)) entry.fieldLabels.push(label);
+    }
   }
+  const backlinks = Array.from(backlinkById.values());
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-12">
