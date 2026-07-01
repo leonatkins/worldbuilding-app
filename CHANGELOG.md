@@ -6,6 +6,35 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- Deleting a category with subjects is no longer blocked — it now confirms first,
+  showing the subject count and a few names, since soft-delete hides them losslessly
+  with the category and restore brings them back.
+- Subject page: field values moved above facts, the "Fields" heading removed, and each
+  value now renders as a compact click-to-edit pill (e.g. "Age: 12 Years") instead of a
+  full-width row with a separate Edit button.
+
+### Fixed
+- Fixed a React hydration error on the world, category, and subject pages caused by
+  `@dnd-kit`'s non-SSR-safe `aria-describedby` id — each `DndContext` now has a stable
+  `id` (`category-list`, `schema-fields`, `facts-list`).
+- Removed the duplicated category icon from the category page's back link ("← categories").
+- All create/rename forms (worlds, categories, subjects) now surface the styled in-app
+  validation error instead of the browser's native popup (`noValidate`).
+- World switcher now lists every world (including the current one) and its trigger
+  shows the active world's name — `createWorld` was missing `revalidatePath("/")`,
+  so the shared app layout served a stale worlds list after creating a world.
+- Visiting a soft-deleted world's URL now shows the Tombstone screen with one-click
+  Restore instead of a raw 404 (`worlds/[worldId]` was filtering out deleted rows
+  before the deleted-vs-missing check, unlike category/subject pages).
+- Deleting a category that still has subjects is now blocked with an explanatory
+  panel ("move or delete them first") instead of silently succeeding — there was no
+  live-subject guard in `deleteCategory` and the DB FK cascades.
+- Empty/whitespace world names now surface the styled in-app validation error
+  instead of the browser's unstyled native popup (`noValidate` on the world forms).
+- After resetting a password the recovery session is ended, forcing sign-in with the
+  new password (`updatePassword` now calls `signOut()` before redirecting).
+
 ### Added
 - **@mention autocomplete (roadmap step 9):** facts become a live reference graph.
   - Type `@` in a fact to mention any subject in the world — a caret-anchored,
