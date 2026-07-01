@@ -245,7 +245,9 @@ function CreateWorldForm() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <form action={formAction} className="space-y-2">
+    // noValidate: route empty/whitespace names through the styled server error
+    // below, not the browser's unstyled native validation popup.
+    <form action={formAction} noValidate className="space-y-2">
       <div className="flex items-stretch gap-2">
         <input
           ref={inputRef}
@@ -347,7 +349,8 @@ function RenameForm({ world, onDone }: { world: World; onDone: () => void }) {
   }, [state, onDone]);
 
   return (
-    <form action={formAction} className="space-y-2">
+    // noValidate: route empty/whitespace names through the styled server error.
+    <form action={formAction} noValidate className="space-y-2">
       <input type="hidden" name="worldId" value={world.id} />
       <div className="flex items-stretch gap-2">
         <input

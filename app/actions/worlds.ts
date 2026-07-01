@@ -60,6 +60,7 @@ export async function createWorld(formData: FormData): Promise<WorldResult> {
     return { error: seedError.message };
   }
 
+  revalidatePath("/");
   redirect(`/worlds/${world.id}`);
 }
 
