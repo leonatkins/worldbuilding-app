@@ -116,7 +116,7 @@ export function SchemaEditor({ worldId, categoryId, fields, categories }: Props)
           when you’d filter or compare by its value.
         </p>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <DndContext id="schema-fields" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={items.map((f) => f.id)} strategy={verticalListSortingStrategy}>
             <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
               {items.map((field) => (

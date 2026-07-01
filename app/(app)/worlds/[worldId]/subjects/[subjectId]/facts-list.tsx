@@ -111,7 +111,7 @@ export function FactsList({
       <FactComposer worldId={worldId} subjectId={subjectId} mentions={mentions} />
 
       {items.length > 0 && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <DndContext id="facts-list" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={items.map((f) => f.id)} strategy={verticalListSortingStrategy}>
             <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
               {items.map((fact) => (
