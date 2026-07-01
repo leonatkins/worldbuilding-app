@@ -86,7 +86,7 @@ export default async function CategoryPage({ params }: Props) {
           href={`/worlds/${worldId}`}
           className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-800 hover:underline dark:hover:text-neutral-200"
         >
-          ← {category.icon ?? ""} categories
+          ← categories
         </Link>
         <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight">
           <span aria-hidden>{category.icon ?? ""}</span>

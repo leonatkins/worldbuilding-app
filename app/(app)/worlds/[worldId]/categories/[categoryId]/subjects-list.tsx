@@ -153,6 +153,7 @@ function CreateSubjectForm({
           if (result?.error) setError(result.error);
         });
       }}
+      noValidate
       className="space-y-2"
     >
       <div className="flex items-stretch gap-2">
