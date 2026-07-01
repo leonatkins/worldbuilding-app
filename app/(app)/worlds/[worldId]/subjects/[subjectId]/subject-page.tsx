@@ -77,14 +77,6 @@ export function SubjectPage(props: Props) {
           <TagsEditor worldId={worldId} subjectId={subject.id} tags={tags} allTags={allTags} />
         </header>
 
-        <FactsList
-          worldId={worldId}
-          subjectId={subject.id}
-          facts={facts}
-          deletedFacts={deletedFacts}
-          mentions={mentions}
-        />
-
         <FieldsBlock
           worldId={worldId}
           subject={subject}
@@ -92,6 +84,14 @@ export function SubjectPage(props: Props) {
           empty={empty}
           valuesByField={valuesByField}
           dateSuggestions={dateSuggestions}
+        />
+
+        <FactsList
+          worldId={worldId}
+          subjectId={subject.id}
+          facts={facts}
+          deletedFacts={deletedFacts}
+          mentions={mentions}
         />
 
         <DeleteSubject worldId={worldId} subject={subject} />
@@ -158,6 +158,7 @@ function NameEditor({
           else setEditing(false);
         });
       }}
+      noValidate
       className="space-y-1"
     >
       <input
@@ -374,14 +375,8 @@ function FieldsBlock({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-medium text-neutral-500">Fields</h2>
-
-      {filled.length === 0 && !addingField ? (
-        <p className="text-sm text-neutral-400">
-          No fields filled in. Add one below — or just write facts above.
-        </p>
-      ) : (
-        <dl className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+      {(filled.length > 0 || addingField) && (
+        <div className="flex flex-wrap items-center gap-2">
           {filled.map((field) => (
             <FieldRow
               key={field.id}
@@ -393,7 +388,7 @@ function FieldsBlock({
             />
           ))}
           {addingField && (
-            <div className="px-4 py-3">
+            <div className="basis-full">
               <FieldEditor
                 worldId={worldId}
                 subject={subject}
@@ -404,7 +399,7 @@ function FieldsBlock({
               />
             </div>
           )}
-        </dl>
+        </div>
       )}
 
       {addable.length > 0 && (
@@ -466,7 +461,7 @@ function FieldRow({
 
   if (editing) {
     return (
-      <div className="px-4 py-3">
+      <div className="basis-full">
         <FieldEditor
           worldId={worldId}
           subject={subject}
@@ -479,21 +474,20 @@ function FieldRow({
     );
   }
 
+  // Compact click-to-edit pill: "Age: 12 Years".
   return (
-    <div className="flex items-baseline gap-3 px-4 py-3">
-      <dt className="w-32 shrink-0 text-sm text-neutral-500">{field.name}</dt>
-      <dd className="flex-1 text-sm text-neutral-900 dark:text-neutral-100">
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      title="Click to edit"
+      className="inline-flex items-baseline gap-1 rounded-md border border-neutral-200 px-2.5 py-1 text-sm transition hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600"
+    >
+      <span className="text-neutral-500">{field.name}:</span>
+      <span className="font-medium text-neutral-900 dark:text-neutral-100">
         {describeValue(field, state) || "—"}
-        {field.unit ? <span className="text-neutral-400"> {field.unit}</span> : null}
-      </dd>
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="text-sm text-neutral-400 underline-offset-4 transition hover:text-neutral-700 hover:underline dark:hover:text-neutral-200"
-      >
-        Edit
-      </button>
-    </div>
+      </span>
+      {field.unit ? <span className="text-neutral-400">{field.unit}</span> : null}
+    </button>
   );
 }
 
