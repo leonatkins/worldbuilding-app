@@ -110,6 +110,10 @@ export async function updatePassword(formData: FormData): Promise<AuthResult> {
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) return { error: error.message };
+
+  // End the recovery session so the user must sign in with the new password —
+  // a password change shouldn't leave them silently authenticated.
+  await supabase.auth.signOut();
   redirect("/login?reset=success");
 }
 
