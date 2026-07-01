@@ -1,13 +1,15 @@
 /**
- * A world's home = the category manager (step 6). Resolves the world by id; RLS +
- * the deleted_at filter mean a foreign, missing, or soft-deleted world returns no
- * row → 404. Loads the world's live categories (for the manager) and soft-deleted
- * ones (for Recently Deleted), then hands them to the client island.
+ * A world's home = the category manager (step 6). Resolves the world by id
+ * *without* the active filter so we can distinguish "missing/not owned" (404)
+ * from "exists but soft-deleted" (Tombstone with one-click Restore, ADR 0006).
+ * Loads the world's live categories (for the manager) and soft-deleted ones (for
+ * Recently Deleted), then hands them to the client island.
  */
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { activeOnly, deletedOnly } from "@/lib/db/soft-delete";
+import { Tombstone } from "@/app/(app)/_components/tombstone";
 import {
   CategoryManager,
   type Category,
@@ -22,14 +24,16 @@ export default async function WorldPage({ params }: WorldPageProps) {
 
   const { data: world } = await supabase
     .from("worlds")
-    .select("id, name")
+    .select("id, name, deleted_at")
     .eq("id", worldId)
-    .is("deleted_at", null)
     .maybeSingle();
 
   if (!world) notFound();
+  if (world.deleted_at) {
+    return <Tombstone kind="world" name={world.name} worldId={worldId} />;
+  }
 
-  const [{ data: active }, { data: deleted }] = await Promise.all([
+  const [{ data: active }, { data: deleted }, { data: subjects }] = await Promise.all([
     activeOnly(
       supabase
         .from("categories")
@@ -40,9 +44,31 @@ export default async function WorldPage({ params }: WorldPageProps) {
     deletedOnly(
       supabase.from("categories").select("id, name").eq("world_id", worldId),
     ),
+    // Live subjects across the world — used to warn (with a sample) before
+    // soft-deleting a category that still contains subjects.
+    activeOnly(
+      supabase
+        .from("subjects")
+        .select("name, category_id")
+        .eq("world_id", worldId)
+        .order("updated_at", { ascending: false }),
+    ),
   ]);
 
-  const categories = (active ?? []) as Category[];
+  // Per-category subject count + a few sample names for the delete confirmation.
+  const byCategory = new Map<string, string[]>();
+  for (const s of (subjects ?? []) as { name: string; category_id: string }[]) {
+    const list = byCategory.get(s.category_id) ?? [];
+    list.push(s.name);
+    byCategory.set(s.category_id, list);
+  }
+
+  const categories = ((active ?? []) as Omit<Category, "subjectCount" | "subjectSample">[]).map(
+    (c) => {
+      const names = byCategory.get(c.id) ?? [];
+      return { ...c, subjectCount: names.length, subjectSample: names.slice(0, 3) };
+    },
+  ) as Category[];
   const deletedCategories = (deleted ?? []) as DeletedCategory[];
 
   return (

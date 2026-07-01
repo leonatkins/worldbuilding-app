@@ -107,11 +107,12 @@ export async function reorderCategory(formData: FormData): Promise<CategoryResul
 }
 
 /**
- * Soft-delete a category (ADR 0005). First detects List/Link fields in OTHER
- * categories that target this one (the RESTRICT dependency, design §4.2): if any
- * exist, returns them as `blockers` so the UI can offer delete/re-point inline,
- * and does NOT delete. Fields within this category are cascade-removed on purge,
- * so they don't block.
+ * Soft-delete a category (ADR 0005). Blocks only on List/Link fields in OTHER
+ * categories that target this one (the RESTRICT dependency, design §4.2) —
+ * returned as `blockers` so the UI can offer delete/re-point inline. Subjects in
+ * this category do NOT block: soft-delete hides them losslessly with the category
+ * and restore brings them back, so the UI just confirms the count first. Fields
+ * within this category are cascade-removed on purge.
  */
 export async function deleteCategory(formData: FormData): Promise<CategoryResult> {
   const worldId = String(formData.get("worldId") ?? "");

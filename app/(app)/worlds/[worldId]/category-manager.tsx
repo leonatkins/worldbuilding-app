@@ -51,6 +51,10 @@ export type Category = {
   name: string;
   icon: string | null;
   position: number;
+  /** Live subject count in this category (for the delete confirmation). */
+  subjectCount: number;
+  /** Up to 3 sample subject names shown in the delete confirmation. */
+  subjectSample: string[];
 };
 export type DeletedCategory = { id: string; name: string };
 
@@ -111,6 +115,7 @@ export function CategoryManager({ worldId, categories, deletedCategories }: Prop
         </p>
       ) : (
         <DndContext
+          id="category-list"
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={onDragEnd}
@@ -165,6 +170,7 @@ function CreateCategoryForm({ worldId }: { worldId: string }) {
     <div className="space-y-3">
       <form
         action={(fd) => submit(String(fd.get("name") ?? ""), icon)}
+        noValidate
         className="space-y-2"
       >
         <div className="flex items-stretch gap-2">
@@ -315,8 +321,20 @@ function CategoryRow({
       <li ref={setNodeRef} style={style} className="px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-neutral-700 dark:text-neutral-300">
-            Delete <span className="font-medium">{category.name}</span>? It moves to
-            Recently Deleted — restore within 30 days.
+            Delete <span className="font-medium">{category.name}</span>?
+            {category.subjectCount > 0 ? (
+              <>
+                {" "}
+                Its {category.subjectCount}{" "}
+                {category.subjectCount === 1 ? "subject" : "subjects"}
+                {category.subjectSample.length > 0 && (
+                  <> ({category.subjectSample.join(", ")}
+                  {category.subjectCount > category.subjectSample.length ? ", …" : ""})</>
+                )}{" "}
+                go with it.
+              </>
+            ) : null}{" "}
+            It moves to Recently Deleted — restore within 30 days.
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <button
@@ -424,6 +442,7 @@ function RenameCategoryForm({
           else onDone();
         });
       }}
+      noValidate
       className="space-y-2"
     >
       <div className="flex items-stretch gap-2">
