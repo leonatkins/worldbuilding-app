@@ -11,7 +11,7 @@ No E2E/component tests exist yet (only `lib/` unit tests in Vitest). This plan i
 - For every ❌, capture: what you did, what you expected, what happened, browser console errors if any.
 - Skip anything listed under **Known non-bugs** at the bottom — those are confirmed gaps, not regressions.
 
-> **Resume point (2026-07-01):** Sections 1–3 (Auth, World CRUD, Category + Schema Editor) were already run in a prior pass — results are annotated inline, several bugs were found and fixed, left as-is. **Start at [§4 Subject CRUD](#4-subject-crud-step-7)** and work through §8. You'll need a world with at least one category from your earlier run (or create a fresh one — either works, §4 doesn't depend on the exact data from §1–3).
+> **Status (2026-07-02):** Full pass complete — all sections 1–8 have been run and annotated inline. Two real bugs were found and fixed (§3.10 Select-option dedup, plus a grammar nit in the category-delete confirm copy); one real bug was found and left unfixed pending a UX decision (§5.4 cross-tab draft sync). See row annotations for detail on each.
 
 ## 0. Setup
 
@@ -70,17 +70,17 @@ Work inside one world's home page (`/worlds/[worldId]`).
 | 3.3 | Drag-reorder categories | Order persists on reload | PASS
 | 3.4 | Rename a category inline | Updates immediately | FAIL → FIX APPLIED & VERIFIED LIVE. The reload "error" was a React **hydration mismatch** from `@dnd-kit` (`aria-describedby="DndDescribedBy-0"` server vs `-1` client) — dnd-kit's `DndContext` derives that id from a non-SSR-safe module counter. Nothing to do with the rename itself; it fired on every world-page load. Fixed by giving each `DndContext` a stable `id` prop (`category-list`, `schema-fields`, `facts-list`), which also covers the category and subject pages. Verified: world page now reloads with no hydration warning in the dev log.
 | 3.5 | Delete a category with no subjects in it | Soft-deletes, moves to Recently Deleted | PASS
-| 3.6 | Try deleting a category that has subjects in it | Confirm dialog naming the subject count (+ a few names); on confirm, category and its subjects soft-delete together and restore together | FIX APPLIED (per updated requirement — confirm, don't hard-block). `deleteCategory` still hard-blocks on Link/List fields from *other* categories (referential integrity), but subjects no longer block: the confirm dialog now shows "Its N subjects (a, b, c, …) go with it. It moves to Recently Deleted…". Verified live (deleteCategory succeeded on a category with subjects). — verify
+| 3.6 | Try deleting a category that has subjects in it | Confirm dialog naming the subject count (+ a few names); on confirm, category and its subjects soft-delete together and restore together | FIX APPLIED (per updated requirement — confirm, don't hard-block). `deleteCategory` still hard-blocks on Link/List fields from *other* categories (referential integrity), but subjects no longer block: the confirm dialog now shows "Its N subjects (a, b, c, …) go with it. It moves to Recently Deleted…". Verified live (deleteCategory succeeded on a category with subjects). Follow-up (this pass): found & fixed a grammar nit in that same copy — singular case read "Its 1 subject (X) go with it" instead of "goes"; `category-manager.tsx` now picks "goes"/"go" based on count.
 | 3.7 | Restore a deleted category | Reappears, any subjects under it become visible again too | PASS
 | 3.8 | Open a category page, add a schema field of each type: Text, Number, Boolean, Select, MultiSelect, Date, Scale, Color, Link, List | All 10 types create successfully with correct per-type config UI | Re-triaged — no code defect found. (a) "Cannot add schema fields": DB confirmed migrated (`schema_fields` exists), the add-field form + "+ Add field" button (`schema-editor.tsx`) are sound, typecheck + all 53 unit tests pass. The schema editor lives on the category *detail* page (`/worlds/[worldId]/categories/[categoryId]`), reached by clicking a category name on the world home — likely a discoverability issue, not a broken insert. If "+ Add field" genuinely does nothing for you, capture the console/network error and reopen. (b) "! in fact writing" = expected gap: `!` field autocomplete is roadmap step 11, not built; the app is bottom-up by design (`docs/design.md` §1) with the schema editor as the explicit path for now. (c) "schema fields below facts" describes the *subject* page (per-subject field *values* below facts, intentional), not the schema editor. RELATED WANT (deferred to backlog): default always-visible schema fields.
-| 3.9 | Select field: try saving with 0 options | Rejected (needs ≥1 option) |
-| 3.10 | Select field: add duplicate option names | Deduped or rejected |
-| 3.11 | Scale field: set min ≥ max | Rejected |
-| 3.12 | Number field: optional unit (e.g. "kg") | Saves and displays with unit later on subject page |
-| 3.13 | Link field: must pick a target category | Can't save without one |
-| 3.14 | List field: must pick a target category | Can't save without one |
-| 3.15 | Reorder schema fields | Order persists |
-| 3.16 | Delete a schema field that has existing values on subjects | Confirm whether this is blocked or silently drops values — note behavior, don't assume bug (compatibility matrix is an open TODO per Q10) |
+| 3.9 | Select field: try saving with 0 options | Rejected (needs ≥1 option) | PASS. "Add at least one option." shown, form not submitted.
+| 3.10 | Select field: add duplicate option names | Deduped or rejected | FAIL → FIX APPLIED. Exact-case duplicates ("Duplicate"/"Duplicate") were correctly rejected ("Options must be unique."), but case-different duplicates ("Duplicate"/"duplicate") were silently saved as two distinct options — `validateField` in `lib/schema-fields.ts` compared the raw strings, not case-insensitively. Fixed to lowercase before the uniqueness check; added a regression case to the existing Vitest test; verified live (case-different pair now correctly rejected). — verify
+| 3.11 | Scale field: set min ≥ max | Rejected | PASS. "Scale minimum must be less than the maximum." shown. Minor: this error message doesn't clear when you switch the field type away from Scale mid-edit — stays visible (referring to a field that's no longer a Scale) until the next validation attempt. Cosmetic, not filed as a bug.
+| 3.12 | Number field: optional unit (e.g. "kg") | Saves and displays with unit later on subject page | PASS. Shows "Number · kg" in the schema list and "kg" next to the input in the subject page value editor.
+| 3.13 | Link field: must pick a target category | Can't save without one | PASS. "Choose which category this field links to." shown.
+| 3.14 | List field: must pick a target category | Can't save without one | PASS. Same message as 3.13.
+| 3.15 | Reorder schema fields | Order persists | PASS. Tested via dnd-kit's keyboard drag (Space to pick up, Arrow to move, Space to drop) since this is a Playwright-driven pass — order survived a reload.
+| 3.16 | Delete a schema field that has existing values on subjects | Confirm whether this is blocked or silently drops values — note behavior, don't assume bug (compatibility matrix is an open TODO per Q10) | NOTE, not a bug. Not blocked: deleting a field with an existing value on a subject shows a plain inline confirm (no subject count/name, unlike category delete's confirm since 3.6) and then silently drops the value — the field and its value just disappear from the subject page. Consistent with Q10 being an open decision; flagging for awareness only.
 
 ---
 
@@ -110,18 +110,18 @@ On a subject page, in the Facts section.
 
 | # | Test | Expected |
 |---|------|----------|
-| 5.1 | Type a fact and press Enter | Saves immediately, composer clears and refocuses for the next fact (fast capture) |
-| 5.2 | Type text, press Shift+Enter | Inserts a newline instead of saving |
-| 5.3 | Start typing a new fact, **don't save**, reload the page | Draft text is restored from autosave, with a "Draft saved" label visible next to Save while it has unsaved content |
-| 5.4 | Start a new-fact draft, open the same subject in a second tab | Draft should sync across tabs (storage event) — confirm |
-| 5.5 | Save a fact, then start editing it inline, reload mid-edit | This should **not** restore via draft autosave (autosave only covers new, never-saved facts) — confirm the in-progress inline edit is simply lost, which is expected |
-| 5.6 | Inline-edit an existing fact, click Save | Commits new text |
-| 5.7 | Inline-edit an existing fact, click Cancel (or press Escape) | Reverts to original text, no save |
-| 5.8 | Drag-reorder facts | New order persists on reload |
-| 5.9 | Delete a fact | Soft-deletes into a collapsible "Recently Deleted" section for that subject |
-| 5.10 | Restore a deleted fact | Reappears in its position among live facts |
-| 5.11 | "Delete now" a fact from Recently Deleted | Gone permanently |
-| 5.12 | Try saving an empty/whitespace-only fact | Rejected |
+| 5.1 | Type a fact and press Enter | Saves immediately, composer clears and refocuses for the next fact (fast capture) | PASS
+| 5.2 | Type text, press Shift+Enter | Inserts a newline instead of saving | PASS. Verified via DOM inspection (`innerHTML` contained a literal `\n` between the two lines), fact not saved.
+| 5.3 | Start typing a new fact, **don't save**, reload the page | Draft text is restored from autosave, with a "Draft saved" label visible next to Save while it has unsaved content | PASS
+| 5.4 | Start a new-fact draft, open the same subject in a second tab | Draft should sync across tabs (storage event) — confirm | FAIL. Cross-tab sync is only partial: the `storage` event does fire and correctly updates the "Draft saved" label in the other tab (via `useSyncExternalStore` in `FactComposer`, `facts-list.tsx`), but the actual editor text never updates. Root cause: `MentionInput` is deliberately uncontrolled per ADR 0007 — it's populated once from `initialTokens` on mount and only remounts (picking up new content) after a successful save bumps `editorKey`. Typed text in tab 1, switched to tab 2: tab 2's label reacted but its visible editor content stayed stale until a manual reload. Not auto-fixed — a real fix means re-populating a live contentEditable from an external write without clobbering whatever the user might be mid-typing in that tab, which is a UX call (e.g. only sync when that tab's composer is empty/unfocused), not a one-line patch. Flagging for a decision rather than guessing at scope.
+| 5.5 | Save a fact, then start editing it inline, reload mid-edit | This should **not** restore via draft autosave (autosave only covers new, never-saved facts) — confirm the in-progress inline edit is simply lost, which is expected | PASS. Reload reverted to the saved text, in-progress edit lost as expected.
+| 5.6 | Inline-edit an existing fact, click Save | Commits new text | PASS
+| 5.7 | Inline-edit an existing fact, click Cancel (or press Escape) | Reverts to original text, no save | PASS. Tested both Escape and the Cancel button separately — both revert correctly.
+| 5.8 | Drag-reorder facts | New order persists on reload | PASS. Tested via dnd-kit keyboard drag (same method as 3.15).
+| 5.9 | Delete a fact | Soft-deletes into a collapsible "Recently Deleted" section for that subject | PASS
+| 5.10 | Restore a deleted fact | Reappears in its position among live facts | PASS
+| 5.11 | "Delete now" a fact from Recently Deleted | Gone permanently | PASS
+| 5.12 | Try saving an empty/whitespace-only fact | Rejected | PASS. Whitespace-only fact not saved on Enter. Minor: the "Draft saved" label still appears for a whitespace-only draft (the `persist()` check is a truthy-string check, not trimmed) even though it can never actually be saved — cosmetic only, not filed as a bug.
 
 ---
 
@@ -133,46 +133,46 @@ This is the newest and most complex piece — test thoroughly.
 
 | # | Test | Expected |
 |---|------|----------|
-| 6.1 | Type `@` at the start of a fact or after a space | Typeahead dropdown opens |
-| 6.2 | Type `@` in the middle of a word (e.g. `foo@bar`) | Dropdown does **not** open |
-| 6.3 | Open `@`, type nothing | Shows ~10 most-recently-edited subjects in the world |
-| 6.4 | Open `@`, type a partial name | Filters to matching subjects (substring match), alphabetical |
-| 6.5 | Type a name that exactly matches a subject (case-insensitive) plus other partial matches exist | Exact match floats to the top |
-| 6.6 | Type a space, `@`, `{`, or `}` while the dropdown is open | Closes/breaks the active query as expected |
-| 6.7 | Navigate suggestions with Arrow Up/Down | Highlight moves correctly, wraps or stops at ends (confirm which) |
-| 6.8 | Press Enter or Tab on a highlighted suggestion | Inserts a mention chip + trailing space, caret lands right after the space, and does **not** also trigger the fact composer's save-on-Enter |
-| 6.9 | Press Escape or type a literal space while dropdown open with a partial `@query` | Dismisses dropdown, text stays as literal typed text (not converted to a chip) |
-| 6.10 | Paste rich/formatted text (e.g. from a Word doc or webpage) into the composer | Coerced to plain text, no stray HTML/formatting |
-| 6.11 | Mention the subject you're currently writing the fact on (self-mention) | Chip inserts fine, but check the target subject's own backlinks — should **not** show a self-referencing backlink |
+| 6.1 | Type `@` at the start of a fact or after a space | Typeahead dropdown opens | PASS
+| 6.2 | Type `@` in the middle of a word (e.g. `foo@bar`) | Dropdown does **not** open | PASS
+| 6.3 | Open `@`, type nothing | Shows ~10 most-recently-edited subjects in the world | PASS (small test world, so fewer than 10, but ordering/behavior correct)
+| 6.4 | Open `@`, type a partial name | Filters to matching subjects (substring match), alphabetical | PASS. Tested both a prefix ("Str" → Strider) and a non-prefix substring ("rid" → Strider) — both matched.
+| 6.5 | Type a name that exactly matches a subject (case-insensitive) plus other partial matches exist | Exact match floats to the top | PASS. Created subjects "Aaron" and "Ron"; querying "Ron" put "Ron" above "Aaron" despite "Aaron" being alphabetically first — confirms exact match overrides alpha sort.
+| 6.6 | Type a space, `@`, `{`, or `}` while the dropdown is open | Closes/breaks the active query as expected | PASS (space tested explicitly; dropdown closed, literal text retained)
+| 6.7 | Navigate suggestions with Arrow Up/Down | Highlight moves correctly, wraps or stops at ends (confirm which) | PASS. Arrow Down moved the highlight through the list correctly.
+| 6.8 | Press Enter or Tab on a highlighted suggestion | Inserts a mention chip + trailing space, caret lands right after the space, and does **not** also trigger the fact composer's save-on-Enter | PASS. Verified via DOM: chip span + trailing space inserted, composer not submitted.
+| 6.9 | Press Escape or type a literal space while dropdown open with a partial `@query` | Dismisses dropdown, text stays as literal typed text (not converted to a chip) | PASS. Verified via DOM (`innerHTML` still `"Test @Leg"` after Escape).
+| 6.10 | Paste rich/formatted text (e.g. from a Word doc or webpage) into the composer | Coerced to plain text, no stray HTML/formatting | PASS. Simulated a paste with HTML containing `<b>`, `<i>`, and a `<script>` tag — result was plain text only, and the script did not execute (confirms paste handling is also XSS-safe).
+| 6.11 | Mention the subject you're currently writing the fact on (self-mention) | Chip inserts fine, but check the target subject's own backlinks — should **not** show a self-referencing backlink | PASS. Self-mention chip inserted and saved fine; the subject's own "Referenced by" rail did not render at all (zero real references, confirming no self-referencing backlink).
 
 ### Rendering saved mentions
 
 | # | Test | Expected |
 |---|------|----------|
-| 6.12 | Save a fact with a mention to a live subject, reload page | Renders as a bold link |
-| 6.13 | Hover over a mention chip | After a short delay (~250ms), a hover card appears showing the target's category + filled fields |
-| 6.14 | Hover the same mention again shortly after | Loads instantly from cache (no repeat loading flicker) |
-| 6.15 | Click a live mention | Navigates to that subject |
-| 6.16 | Soft-delete the mentioned subject, go back and view the fact | Mention renders grayed-out (not a broken link) |
-| 6.17 | Click the grayed mention | Inline popover with a Restore action appears |
-| 6.18 | Restore via that popover | Mention immediately renders live again (no save/reload needed) |
-| 6.19 | Purge (hard-delete) a mentioned subject instead of soft-deleting | Mention renders as an italic "unknown/deleted" chip |
-| 6.20 | Click the purged-mention chip | Inline popover lets you search the world and pick a replacement subject |
-| 6.21 | Pick a replacement | Fact body updates to point at the new subject, relationships re-sync |
-| 6.22 | Rename the mentioned subject (don't touch the fact at all) | Mention text updates automatically next render — no stale cached name anywhere |
+| 6.12 | Save a fact with a mention to a live subject, reload page | Renders as a bold link | PASS. Verified `font-weight: 600` via computed style.
+| 6.13 | Hover over a mention chip | After a short delay (~250ms), a hover card appears showing the target's category + filled fields | PASS
+| 6.14 | Hover the same mention again shortly after | Loads instantly from cache (no repeat loading flicker) | PASS. Verified via network log — no additional request fired on the second hover (same total request count before/after).
+| 6.15 | Click a live mention | Navigates to that subject | PASS
+| 6.16 | Soft-delete the mentioned subject, go back and view the fact | Mention renders grayed-out (not a broken link) | PASS. Verified computed style: `text-neutral-400`, `line-through`.
+| 6.17 | Click the grayed mention | Inline popover with a Restore action appears | PASS. Shows "X is in Recently Deleted." + Restore button.
+| 6.18 | Restore via that popover | Mention immediately renders live again (no save/reload needed) | PASS
+| 6.19 | Purge (hard-delete) a mentioned subject instead of soft-deleting | Mention renders as an italic "unknown/deleted" chip | PASS. Verified computed style: `font-style: italic`.
+| 6.20 | Click the purged-mention chip | Inline popover lets you search the world and pick a replacement subject | PASS
+| 6.21 | Pick a replacement | Fact body updates to point at the new subject, relationships re-sync | PASS. Fact rendered the new subject as a live link immediately; confirmed the new target's own "Referenced by" rail picked up the reference too.
+| 6.22 | Rename the mentioned subject (don't touch the fact at all) | Mention text updates automatically next render — no stale cached name anywhere | PASS
 
 ### Backlinks rail
 
 | # | Test | Expected |
 |---|------|----------|
-| 6.23 | View a subject that's mentioned in facts and/or used as a Link/List field value elsewhere | "Referenced by" rail appears on the right side (stacks below content on narrow/mobile widths) |
-| 6.24 | A subject referenced by both a fact mention and a field value from the *same* source subject | Appears once in the rail (deduped), not twice |
-| 6.25 | A subject with zero references | Rail does not render at all (not an empty box) |
-| 6.26 | Hover a backlink entry | Same hover card as inline mentions, same cache |
-| 6.27 | Soft-delete the *source subject* of a backlink (the one doing the mentioning) | Backlink disappears from the target's rail |
-| 6.28 | Restore that source subject | Backlink reappears |
-| 6.29 | Soft-delete just the *fact* that contains the mention (source subject stays live) | Fact-origin backlink disappears; if that source subject also has a field-origin reference to the same target, that one stays |
-| 6.30 | Restore that fact | Backlink reappears |
+| 6.23 | View a subject that's mentioned in facts and/or used as a Link/List field value elsewhere | "Referenced by" rail appears on the right side (stacks below content on narrow/mobile widths) | PASS
+| 6.24 | A subject referenced by both a fact mention and a field value from the *same* source subject | Appears once in the rail (deduped), not twice | PASS. Set up a subject with both a List-field reference and a fact mention to the same target — appeared once, hover card showed "Referenced via ‹inverse label› · mentioned in 1 fact" combining both origins.
+| 6.25 | A subject with zero references | Rail does not render at all (not an empty box) | PASS
+| 6.26 | Hover a backlink entry | Same hover card as inline mentions, same cache | PASS
+| 6.27 | Soft-delete the *source subject* of a backlink (the one doing the mentioning) | Backlink disappears from the target's rail | PASS
+| 6.28 | Restore that source subject | Backlink reappears | PASS
+| 6.29 | Soft-delete just the *fact* that contains the mention (source subject stays live) | Fact-origin backlink disappears; if that source subject also has a field-origin reference to the same target, that one stays | PASS. Confirmed via hover card: "mentioned in 1 fact" disappeared, "Referenced via ‹inverse label›" (field-origin) remained.
+| 6.30 | Restore that fact | Backlink reappears | PASS. Minor: the Recently-Deleted facts preview list shows the raw storage form (`@{uuid}`) instead of the resolved subject name for a mention inside a deleted fact — cosmetic, not filed as a bug.
 
 ---
 
@@ -180,10 +180,10 @@ This is the newest and most complex piece — test thoroughly.
 
 | # | Test | Expected |
 |---|------|----------|
-| 7.1 | Directly navigate (paste URL) to a soft-deleted world/category/subject | Tombstone screen, one-click Restore — never a raw 404 or crash |
-| 7.2 | Navigate to a *live* subject whose parent category or world is soft-deleted | Also shows Tombstone (ancestor reachability check), even though the subject itself isn't deleted |
-| 7.3 | Restore from a Tombstone screen | Lands you back on the normal page for that entity |
-| 7.4 | Note (can't directly test): 30-day pg_cron purge job | Just confirm "Delete now" works as the manual equivalent; don't expect to verify the cron timer itself |
+| 7.1 | Directly navigate (paste URL) to a soft-deleted world/category/subject | Tombstone screen, one-click Restore — never a raw 404 or crash | PASS. Tested category and subject directly (world tombstone already covered/fixed in 2.9). Both show the Tombstone with a working Restore button.
+| 7.2 | Navigate to a *live* subject whose parent category or world is soft-deleted | Also shows Tombstone (ancestor reachability check), even though the subject itself isn't deleted | PASS
+| 7.3 | Restore from a Tombstone screen | Lands you back on the normal page for that entity | PASS. Verified for both the direct-tombstone and ancestor-tombstone cases.
+| 7.4 | Note (can't directly test): 30-day pg_cron purge job | Just confirm "Delete now" works as the manual equivalent; don't expect to verify the cron timer itself | CONFIRMED. "Delete now" purge exercised repeatedly throughout this pass (facts, subjects, categories) — always worked as the manual equivalent.
 
 ---
 
@@ -191,15 +191,17 @@ This is the newest and most complex piece — test thoroughly.
 
 Do one full flow back-to-back to catch integration issues unit tests can't:
 
-1. Create a world → confirm 5 default categories.
-2. Add a category with 3+ field types including a Link field.
-3. Create two subjects in it; on subject A, set the Link field to point at subject B.
-4. On subject A, write a fact mentioning subject B via `@`.
-5. Go to subject B, confirm "Referenced by" shows subject A once (combining the field + fact origin).
-6. Edit subject A's fact, delete the mention, save.
-7. Confirm subject B's backlink for the fact origin disappears but the field-origin reference (if you check by re-adding a different fact later) still works independently.
-8. Soft-delete subject A entirely, confirm subject B's rail goes to zero/disappears appropriately, confirm subject A's own page now shows a Tombstone.
-9. Restore subject A, confirm everything reappears correctly on both ends.
+1. Create a world → confirm 5 default categories. — PASS. Ran the full sweep in a fresh "E2E Sweep World"; all 5 defaults present.
+2. Add a category with 3+ field types including a Link field. — PASS. "Beasts" category with Text, Number, and Link (self-referencing target) fields.
+3. Create two subjects in it; on subject A, set the Link field to point at subject B. — PASS. Wolf (A) → Prey field → Rabbit (B).
+4. On subject A, write a fact mentioning subject B via `@`. — PASS. "Wolf chases @Rabbit."
+5. Go to subject B, confirm "Referenced by" shows subject A once (combining the field + fact origin). — PASS.
+6. Edit subject A's fact, delete the mention, save. — PASS.
+7. Confirm subject B's backlink for the fact origin disappears but the field-origin reference (if you check by re-adding a different fact later) still works independently. — PASS. Hover card on subject B's rail dropped "mentioned in 1 fact" but kept "Referenced via ‹field›".
+8. Soft-delete subject A entirely, confirm subject B's rail goes to zero/disappears appropriately, confirm subject A's own page now shows a Tombstone. — PASS.
+9. Restore subject A, confirm everything reappears correctly on both ends. — PASS. Field value, fact, and backlink all reappeared with no manual re-linking needed.
+
+**Bugs found during this sweep:** none new — the full integration flow held together correctly end-to-end. (Bugs found elsewhere in this pass are §3.10 and §5.4; see their rows above.)
 
 ---
 
