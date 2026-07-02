@@ -53,6 +53,9 @@ describe("validateField", () => {
     expect(
       validateField({ name: "S", type: "Select", selectOptions: ["A", "A"] }),
     ).toEqual({ error: "Options must be unique." });
+    expect(
+      validateField({ name: "S", type: "Select", selectOptions: ["Hero", "hero"] }),
+    ).toEqual({ error: "Options must be unique." });
   });
 
   it("requires min < max for Scale", () => {

@@ -150,7 +150,8 @@ export function validateField(draft: FieldDraft): FieldValidation {
       .map((o) => o.trim())
       .filter((o) => o.length > 0);
     if (options.length === 0) return { error: "Add at least one option." };
-    if (new Set(options).size !== options.length) {
+    const lowerCased = options.map((o) => o.toLowerCase());
+    if (new Set(lowerCased).size !== lowerCased.length) {
       return { error: "Options must be unique." };
     }
     config.selectOptions = options;

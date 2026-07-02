@@ -15,6 +15,12 @@ All notable changes to this project are documented here. Format follows
   full-width row with a separate Edit button.
 
 ### Fixed
+- **Fixes found in manual testing (steps 4–9 completion pass):**
+  - Schema field Select/Multi-select options are now deduped case-insensitively —
+    "Duplicate" and "duplicate" were previously accepted as two distinct options;
+    only exact-string duplicates were rejected before.
+  - Category-delete confirm copy now reads "goes with it" for a single subject
+    instead of "go with it".
 - **Subject CRUD fixes found in manual testing (step 7):**
   - Creating a subject no longer redirects into its page — it stays on the
     category page, input clears, and it's ready for the next subject (fast

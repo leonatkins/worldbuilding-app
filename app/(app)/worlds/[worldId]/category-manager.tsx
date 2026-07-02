@@ -346,7 +346,7 @@ function CategoryRow({
                   <> ({category.subjectSample.join(", ")}
                   {category.subjectCount > category.subjectSample.length ? ", …" : ""})</>
                 )}{" "}
-                go with it.
+                {category.subjectCount === 1 ? "goes" : "go"} with it.
               </>
             ) : null}{" "}
             It moves to Recently Deleted — restore within 30 days.
