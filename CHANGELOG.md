@@ -40,8 +40,6 @@ All notable changes to this project are documented here. Format follows
     visually showed a value — the displayed fallback (scale min / default
     gray) wasn't what actually got submitted unless the user touched the
     control first. Save now submits the same fallback that's displayed.
-  - Suggested category chips (Biomes, Events, etc.) no longer offer a
-    suggestion that matches a category (name + icon) already in the world.
 - Fixed a React hydration error on the world, category, and subject pages caused by
   `@dnd-kit`'s non-SSR-safe `aria-describedby` id — each `DndContext` now has a stable
   `id` (`category-list`, `schema-fields`, `facts-list`).
@@ -83,6 +81,14 @@ All notable changes to this project are documented here. Format follows
     summary list, with an "Edit schema" link to a new dedicated
     `/categories/[categoryId]/schema` route where all mutation (add, edit,
     delete, reorder, inverse label) now lives.
+- **Tag manager:** a collapsible "Tags" section on world home lists every tag
+  in the world with its live subject count, and supports inline rename
+  (propagates everywhere in one write) and delete. The `renameTag`/`deleteTag`
+  actions existed from step 7's original build but had no UI until now.
+  Deleting a tag is immediate and permanent — no Recently Deleted, since tags
+  are excluded from the project-wide soft-delete pattern
+  ([ADR 0008](docs/adr/0008-tags-excluded-from-soft-delete.md)) — so the
+  confirm step names the affected subject count as a safeguard.
 - **@mention autocomplete (roadmap step 9):** facts become a live reference graph.
   - Type `@` in a fact to mention any subject in the world — a caret-anchored,
     non-covering typeahead (world-scoped search, recently-edited by default,

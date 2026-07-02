@@ -104,6 +104,13 @@ Top-to-bottom: **Name** (inline editable) · **Category** (label + change `<sele
 ### 5.3 Tags
 - Pills with × to remove; type-to-add input with **autocomplete over world tags** +
   "Create #new" inline (creates tag + links). Stored bare; `#` render-only.
+- World-level rename/delete has a UI: the **Tag manager**, a collapsible section
+  on world home (`/worlds/[worldId]`) listing every tag with its live subject
+  count. Rename is inline, same shape as category/subject rename. Delete is
+  hard and cascading (§3, ADR 0008) — its confirm step names the affected
+  subject count as a safeguard, since there's no Recently Deleted to fall back
+  on. (Post-launch addition — the `renameTag`/`deleteTag` actions existed from
+  this step's original build but had no UI entry point until this fix.)
 
 ## 6. Subject edit
 - **Name:** inline editable title.

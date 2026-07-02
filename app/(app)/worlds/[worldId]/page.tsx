@@ -15,6 +15,7 @@ import {
   type Category,
   type DeletedCategory,
 } from "./category-manager";
+import { TagManager, type WorldTag } from "./tag-manager";
 
 type WorldPageProps = { params: Promise<{ worldId: string }> };
 
@@ -33,27 +34,32 @@ export default async function WorldPage({ params }: WorldPageProps) {
     return <Tombstone kind="world" name={world.name} worldId={worldId} />;
   }
 
-  const [{ data: active }, { data: deleted }, { data: subjects }] = await Promise.all([
-    activeOnly(
-      supabase
-        .from("categories")
-        .select("id, name, icon, position")
-        .eq("world_id", worldId)
-        .order("position"),
-    ),
-    deletedOnly(
-      supabase.from("categories").select("id, name").eq("world_id", worldId),
-    ),
-    // Live subjects across the world — used to warn (with a sample) before
-    // soft-deleting a category that still contains subjects.
-    activeOnly(
-      supabase
-        .from("subjects")
-        .select("name, category_id")
-        .eq("world_id", worldId)
-        .order("updated_at", { ascending: false }),
-    ),
-  ]);
+  const [{ data: active }, { data: deleted }, { data: subjects }, { data: tags }, { data: subjectTags }] =
+    await Promise.all([
+      activeOnly(
+        supabase
+          .from("categories")
+          .select("id, name, icon, position")
+          .eq("world_id", worldId)
+          .order("position"),
+      ),
+      deletedOnly(
+        supabase.from("categories").select("id, name").eq("world_id", worldId),
+      ),
+      // Live subjects across the world — used to warn (with a sample) before
+      // soft-deleting a category that still contains subjects.
+      activeOnly(
+        supabase
+          .from("subjects")
+          .select("name, category_id")
+          .eq("world_id", worldId)
+          .order("updated_at", { ascending: false }),
+      ),
+      supabase.from("tags").select("id, name").eq("world_id", worldId).order("name"),
+      // Per-tag subject count, for the delete-confirm warning (ADR 0008 — tag
+      // delete is hard/cascading, unlike every other entity).
+      supabase.from("subject_tags").select("tag_id, tags!inner(world_id)").eq("tags.world_id", worldId),
+    ]);
 
   // Per-category subject count + a few sample names for the delete confirmation.
   const byCategory = new Map<string, string[]>();
@@ -70,6 +76,15 @@ export default async function WorldPage({ params }: WorldPageProps) {
     },
   ) as Category[];
   const deletedCategories = (deleted ?? []) as DeletedCategory[];
+
+  const tagCounts = new Map<string, number>();
+  for (const row of (subjectTags ?? []) as { tag_id: string }[]) {
+    tagCounts.set(row.tag_id, (tagCounts.get(row.tag_id) ?? 0) + 1);
+  }
+  const worldTags: WorldTag[] = ((tags ?? []) as { id: string; name: string }[]).map((t) => ({
+    ...t,
+    subjectCount: tagCounts.get(t.id) ?? 0,
+  }));
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-12">
@@ -91,6 +106,8 @@ export default async function WorldPage({ params }: WorldPageProps) {
         categories={categories}
         deletedCategories={deletedCategories}
       />
+
+      <TagManager worldId={worldId} tags={worldTags} />
     </main>
   );
 }

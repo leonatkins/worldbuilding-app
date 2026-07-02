@@ -22,7 +22,7 @@ never a prose paragraph.
 _Avoid_: Note, statement, entry, paragraph
 
 **Tag**:
-A user-defined label applied to subjects for cross-cutting concerns (e.g. `#deceased`, `#arc-1`). Scoped to a world; renameable in one operation. Lives on subjects, not facts.
+A user-defined label applied to subjects for cross-cutting concerns (e.g. `#deceased`, `#arc-1`). Scoped to a world; rename and delete are single world-level operations affecting every subject carrying the tag at once — unlike every other entity, tag deletion is immediate and permanent (no Recently Deleted/Restore).
 _Avoid_: Label, category (different concept)
 
 **Mention**:
