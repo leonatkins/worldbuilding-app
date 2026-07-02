@@ -11,7 +11,7 @@ import { validateName } from "@/lib/validation";
 
 export type SubjectResult = { error?: string };
 
-/** Create a subject (name only) and redirect into its page. */
+/** Create a subject (name only). Stays on the category page for fast repeat-add. */
 export async function createSubject(formData: FormData): Promise<SubjectResult> {
   const worldId = String(formData.get("worldId") ?? "");
   const categoryId = String(formData.get("categoryId") ?? "");
@@ -27,7 +27,8 @@ export async function createSubject(formData: FormData): Promise<SubjectResult> 
 
   if (error || !data) return { error: error?.message ?? "Could not create subject." };
 
-  redirect(`/worlds/${worldId}/subjects/${data.id}`);
+  revalidatePath(`/worlds/${worldId}/categories/${categoryId}`);
+  return {};
 }
 
 export async function renameSubject(formData: FormData): Promise<SubjectResult> {

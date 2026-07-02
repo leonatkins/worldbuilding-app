@@ -535,6 +535,7 @@ function TagsEditor({
   allTags: Ref[];
 }) {
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState("");
 
   function add(name: string) {
     if (!name.trim()) return;
@@ -542,8 +543,9 @@ function TagsEditor({
     fd.set("worldId", worldId);
     fd.set("subjectId", subjectId);
     fd.set("name", name);
-    startTransition(() => {
-      void applyTag(fd);
+    startTransition(async () => {
+      const result = await applyTag(fd);
+      setError(result?.error ?? "");
     });
   }
 
@@ -552,8 +554,9 @@ function TagsEditor({
     fd.set("worldId", worldId);
     fd.set("subjectId", subjectId);
     fd.set("tagId", tagId);
-    startTransition(() => {
-      void removeTag(fd);
+    startTransition(async () => {
+      const result = await removeTag(fd);
+      setError(result?.error ?? "");
     });
   }
 
@@ -561,6 +564,7 @@ function TagsEditor({
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
+      {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
       {tags.map((t) => (
         <span
           key={t.id}
@@ -687,7 +691,12 @@ function AddFieldMenu({
 }
 
 function describeValue(field: SchemaField, state: FieldValueState): string {
-  if (state.kind === "scalar") return formatScalarValue(field.type, state.value);
+  if (state.kind === "scalar") {
+    if (field.type === "Scale" && field.scale_max != null) {
+      return `${formatScalarValue(field.type, state.value)}/${field.scale_max}`;
+    }
+    return formatScalarValue(field.type, state.value);
+  }
   if (state.kind === "link") return state.subject?.name ?? "—";
   return state.subjects.map((s) => s.name).join(", ");
 }
@@ -722,6 +731,45 @@ function FieldRow({
     );
   }
 
+  // Link/List values are subject references — render as clickable mentions
+  // (can't nest an <a> inside the click-to-edit <button> the other types use),
+  // with a small separate edit affordance instead.
+  if (field.type === "Link" || field.type === "List") {
+    const linked =
+      state.kind === "link" ? (state.subject ? [state.subject] : []) : state.kind === "list" ? state.subjects : [];
+    return (
+      <span className="inline-flex flex-wrap items-baseline gap-1 rounded-md border border-neutral-200 px-2.5 py-1 text-sm dark:border-neutral-800">
+        <span className="text-neutral-500">{field.name}:</span>
+        {linked.length === 0 ? (
+          <span className="font-medium text-neutral-900 dark:text-neutral-100">—</span>
+        ) : (
+          linked.map((s, i) => (
+            <span key={s.id} className="inline-flex items-center">
+              <SubjectHoverCard subjectId={s.id}>
+                <Link
+                  href={`/worlds/${worldId}/subjects/${s.id}`}
+                  className="font-semibold text-neutral-900 underline-offset-2 transition hover:underline dark:text-neutral-100"
+                >
+                  {s.name}
+                </Link>
+              </SubjectHoverCard>
+              {i < linked.length - 1 && <span className="text-neutral-400">,</span>}
+            </span>
+          ))
+        )}
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          aria-label={`Edit ${field.name}`}
+          title="Click to edit"
+          className="ml-0.5 text-neutral-400 transition hover:text-neutral-900 dark:hover:text-neutral-100"
+        >
+          ✎
+        </button>
+      </span>
+    );
+  }
+
   // Compact click-to-edit pill: "Age: 12 Years".
   return (
     <button
@@ -731,9 +779,17 @@ function FieldRow({
       className="inline-flex items-baseline gap-1 rounded-md border border-neutral-200 px-2.5 py-1 text-sm transition hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600"
     >
       <span className="text-neutral-500">{field.name}:</span>
-      <span className="font-medium text-neutral-900 dark:text-neutral-100">
-        {describeValue(field, state) || "—"}
-      </span>
+      {field.type === "Color" && state.kind === "scalar" && state.value ? (
+        <span
+          className="inline-block h-4 w-4 rounded-full border border-neutral-300 dark:border-neutral-600"
+          style={{ backgroundColor: String(state.value) }}
+          title={String(state.value)}
+        />
+      ) : (
+        <span className="font-medium text-neutral-900 dark:text-neutral-100">
+          {describeValue(field, state) || "—"}
+        </span>
+      )}
       {field.unit ? <span className="text-neutral-400">{field.unit}</span> : null}
     </button>
   );
@@ -869,17 +925,28 @@ function FieldInput({
   switch (field.type) {
     case "Boolean":
       return (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={bool}
-            onChange={(e) => {
-              setBool(e.target.checked);
-              onSubmitScalar(e.target.checked ? "true" : "false");
+        <div className="flex items-center gap-2 text-sm">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={bool}
+            onClick={() => {
+              const next = !bool;
+              setBool(next);
+              onSubmitScalar(next ? "true" : "false");
             }}
-          />
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+              bool ? "bg-neutral-900 dark:bg-neutral-100" : "bg-neutral-300 dark:bg-neutral-700"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                bool ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
           {bool ? "Yes" : "No"}
-        </label>
+        </div>
       );
     case "Select":
       return (
@@ -901,7 +968,7 @@ function FieldInput({
       );
     case "MultiSelect":
       return (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {(field.select_options ?? []).map((o) => {
             const on = multi.includes(o);
             return (
@@ -909,9 +976,7 @@ function FieldInput({
                 key={o}
                 type="button"
                 onClick={() => {
-                  const next = on ? multi.filter((v) => v !== o) : [...multi, o];
-                  setMulti(next);
-                  onSubmitScalar(null, next);
+                  setMulti(on ? multi.filter((v) => v !== o) : [...multi, o]);
                 }}
                 className={`rounded-full px-2.5 py-1 text-xs transition ${
                   on
@@ -923,11 +988,20 @@ function FieldInput({
               </button>
             );
           })}
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onSubmitScalar(null, multi)}
+            className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          >
+            Save
+          </button>
         </div>
       );
     case "Scale":
       return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-neutral-400">{field.scale_min ?? 0}</span>
           <input
             type="range"
             min={field.scale_min ?? 0}
@@ -936,8 +1010,16 @@ function FieldInput({
             onChange={(e) => setText(e.target.value)}
             className="flex-1"
           />
+          <span className="text-xs text-neutral-400">{field.scale_max ?? 10}</span>
           <span className="w-8 text-sm tabular-nums">{text || field.scale_min}</span>
-          {saveBtn}
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onSubmitScalar(text || String(field.scale_min ?? 0))}
+            className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          >
+            Save
+          </button>
         </div>
       );
     case "Color":
@@ -949,7 +1031,14 @@ function FieldInput({
             onChange={(e) => setText(e.target.value)}
             className="h-9 w-12 rounded border border-neutral-300 dark:border-neutral-700"
           />
-          {saveBtn}
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onSubmitScalar(/^#[0-9a-fA-F]{6}$/.test(text) ? text : "#888888")}
+            className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          >
+            Save
+          </button>
         </div>
       );
     case "Date":

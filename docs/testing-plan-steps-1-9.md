@@ -11,6 +11,8 @@ No E2E/component tests exist yet (only `lib/` unit tests in Vitest). This plan i
 - For every ❌, capture: what you did, what you expected, what happened, browser console errors if any.
 - Skip anything listed under **Known non-bugs** at the bottom — those are confirmed gaps, not regressions.
 
+> **Resume point (2026-07-01):** Sections 1–3 (Auth, World CRUD, Category + Schema Editor) were already run in a prior pass — results are annotated inline, several bugs were found and fixed, left as-is. **Start at [§4 Subject CRUD](#4-subject-crud-step-7)** and work through §8. You'll need a world with at least one category from your earlier run (or create a fresh one — either works, §4 doesn't depend on the exact data from §1–3).
+
 ## 0. Setup
 
 1. `npm install`
@@ -86,19 +88,19 @@ Work inside one world's home page (`/worlds/[worldId]`).
 
 | # | Test | Expected |
 |---|------|----------|
-| 4.1 | Create a subject in a category (name only) | Appears in category's subject list |
-| 4.2 | List view sorting | Subjects listed sensibly (alphabetical or recency — confirm consistent) |
-| 4.3 | Inline rename a subject | Updates immediately |
-| 4.4 | Change a subject's category | Confirm dialog warns that field values will be cleared (since schema differs); confirm count of affected values |
-| 4.5 | Delete a subject | Soft-deletes, appears in category's Recently Deleted |
-| 4.6 | Restore a subject | Reappears with all facts/field values intact |
-| 4.7 | Open a subject page, fill in a value for every field type from 3.8 | Each type has an appropriate inline editor (text box, number input, toggle, single-select, multi-select, date picker, slider/scale, color picker, subject picker for Link, multi-subject picker for List) |
-| 4.8 | Link field: pick another subject as target | Saves; creates a `relationships` row (origin="field") — verify via the target subject's backlinks |
-| 4.9 | List field: add multiple subjects | All appear, removable individually |
-| 4.10 | Add tags to a subject (new tag + existing tag) | Tag created, attached |
-| 4.11 | Add a tag with different casing than an existing one (e.g. "Hero" vs "hero") | Treated as same tag (case-insensitive unique per world) |
-| 4.12 | Rename a tag | Propagates to all subjects using it |
-| 4.13 | Hide-empty-fields behavior | Fields with no value set shouldn't clutter the subject page (this replaces the cut Roles feature, ADR 0002) |
+| 4.1 | Create a subject in a category (name only) | Appears in category's subject list | PASS. NOTE: WHEN CREATING A SUBJECT, IT SHOULD NOT OPEN THE SUBJECTS PAGE.
+| 4.2 | List view sorting | Subjects listed sensibly (alphabetical or recency — confirm consistent) | PASS. NOTE: AFTER SELECTING A SORTING TYPE, THE BORDER OF THE SORT DROPDOWN TURNS ORANGE UNTIL YOU CLICK AWAY.
+| 4.3 | Inline rename a subject | Updates immediately | SEMI-PASS. NO OPTION TO RENAME FROM THE SUBJECTS LIST.
+| 4.4 | Change a subject's category | Confirm dialog warns that field values will be cleared (since schema differs); confirm count of affected values | PASS
+| 4.5 | Delete a subject | Soft-deletes, appears in category's Recently Deleted | SEMI-PASS. NO OPTION TO DELETE IN SUBJECT LIST.
+| 4.6 | Restore a subject | Reappears with all facts/field values intact | PASS
+| 4.7 | Open a subject page, fill in a value for every field type from 3.8 | Each type has an appropriate inline editor (text box, number input, toggle, single-select, multi-select, date picker, slider/scale, color picker, subject picker for Link, multi-subject picker for List) | SEMI-PASS. YES/NO SHOULD BE A TOGGLE SWITCH. MULTI-SELECT AUTO-SAVES AFTER A SINGLE SELECTION. SHOULD SAVE AFTER CONFIRMATION. COLOR PILL SHOULD SHOW THE COLOR, NOT THE HEX CODE. SUBJECT LINK/LIST SHOULD SHOW IT AS A CLICKABLE MENTION. RATING SHOULD SHOW THE MIN AND MAX.
+| 4.8 | Link field: pick another subject as target | Saves; creates a `relationships` row (origin="field") — verify via the target subject's backlinks | PASS
+| 4.9 | List field: add multiple subjects | All appear, removable individually | PASS
+| 4.10 | Add tags to a subject (new tag + existing tag) | Tag created, attached | FAIL. CAN ONLY ADD ONE TAG PER SUBJECT. NO OPTION TO ADD AN EXISTING TAG
+| 4.11 | Add a tag with different casing than an existing one (e.g. "Hero" vs "hero") | Treated as same tag (case-insensitive unique per world) | NO WAY TO VERIFY. HOW SHOULD I KONW IF THEY ARE TREATED AS THE SAME TAG?
+| 4.12 | Rename a tag | Propagates to all subjects using it | FAIL. NO TAG VIEW ACCESSIBLE.
+| 4.13 | Hide-empty-fields behavior | Fields with no value set shouldn't clutter the subject page (this replaces the cut Roles feature, ADR 0002) | PASS
 
 ---
 

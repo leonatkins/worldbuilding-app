@@ -16,7 +16,7 @@ First step to write `field_values` **and** `relationships`. Adds the `tags` /
 ## 1. Scope
 | Capability | Summary |
 |---|---|
-| **Subject create** | Minimal name-only, inline on category page → redirect to subject page. |
+| **Subject create** | Minimal name-only, inline on category page; stays on the category page for fast repeat-add (no redirect — [changed post-launch](../CHANGELOG.md), see §4). |
 | **Subject page** | §6.7 layout (no facts yet): name (inline edit), category, tags, schema block w/ inline value editing, backlinks. |
 | **Field values** | Inline edit per type (10 types); `field_values` hybrid storage; `relationships` maintained for List/Link. |
 | **Tags** | `tags`+`subject_tags` (migration `0003`); apply/create/remove on subject; world-level rename/delete. |
@@ -53,8 +53,12 @@ Step-4 conventions (`account_id DEFAULT auth.uid()`, RLS own-rows, drizzle-gener
 
 ## 4. Subject create (minimal)
 - Inline name input in the category page's subject-list section. **Name only**
-  (category from context). Enter → create → **redirect to `/worlds/[id]/subjects/
-  [newId]`**. Validation: `validateName`.
+  (category from context). Enter → create → **stays on the category page**, input
+  clears and refocuses for fast repeat-add (matches the facts composer's
+  fast-capture pattern, step 8). The new subject appears in the list;
+  navigate to it via its row link. Validation: `validateName`.
+  (Originally redirected into the new subject's page — changed post-launch
+  after testing found the forced navigation broke rapid multi-subject entry.)
 - Global `+` "New subject" from an ambiguous context → category sub-menu (step 6/7
   shared chrome).
 
@@ -114,7 +118,10 @@ Top-to-bottom: **Name** (inline editable) · **Category** (label + change `<sele
   Restore / Delete-now → 30-day pg_cron purge (CASCADE).
 
 ## 8. Subject list (category page)
-- Lists active subjects (filter `deleted_at IS NULL`); each links to subject page.
+- Lists active subjects (filter `deleted_at IS NULL`); each row links to the
+  subject page and carries inline **Rename**/**Delete** actions (same
+  view/rename/confirm-delete pattern as the category manager's rows —
+  post-launch addition; originally the list had no row actions).
 - Sort: **Last edited (default)** / Name A–Z / Z–A; persisted in localStorage
   (`useSyncExternalStore`, worlds-list pattern).
 - Recently Deleted toggle.

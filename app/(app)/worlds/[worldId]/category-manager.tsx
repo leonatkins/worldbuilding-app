@@ -107,7 +107,7 @@ export function CategoryManager({ worldId, categories, deletedCategories }: Prop
 
   return (
     <div className="space-y-6">
-      <CreateCategoryForm worldId={worldId} />
+      <CreateCategoryForm worldId={worldId} categories={items} />
 
       {items.length === 0 ? (
         <p className="rounded-lg border border-dashed border-neutral-300 px-6 py-10 text-center text-sm text-neutral-500 dark:border-neutral-700">
@@ -143,11 +143,26 @@ export function CategoryManager({ worldId, categories, deletedCategories }: Prop
   );
 }
 
-function CreateCategoryForm({ worldId }: { worldId: string }) {
+function CreateCategoryForm({
+  worldId,
+  categories,
+}: {
+  worldId: string;
+  categories: Category[];
+}) {
   const [icon, setIcon] = useState(DEFAULT_CATEGORY_ICON);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // A suggestion hides once a live category matches its name+icon exactly; editing
+  // either (rename or icon change) breaks the match and brings the suggestion back.
+  const taken = new Set(
+    categories.map((c) => `${c.name.trim().toLowerCase()}|${c.icon ?? DEFAULT_CATEGORY_ICON}`),
+  );
+  const availableSuggestions = SUGGESTED_CATEGORIES.filter(
+    (s) => !taken.has(`${s.name.trim().toLowerCase()}|${s.icon}`),
+  );
 
   function submit(name: string, withIcon: string) {
     const fd = new FormData();
@@ -197,7 +212,7 @@ function CreateCategoryForm({ worldId }: { worldId: string }) {
       </form>
 
       <div className="flex flex-wrap gap-1.5">
-        {SUGGESTED_CATEGORIES.map((s) => (
+        {availableSuggestions.map((s) => (
           <button
             key={s.name}
             type="button"

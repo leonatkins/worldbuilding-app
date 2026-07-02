@@ -15,6 +15,33 @@ All notable changes to this project are documented here. Format follows
   full-width row with a separate Edit button.
 
 ### Fixed
+- **Subject CRUD fixes found in manual testing (step 7):**
+  - Creating a subject no longer redirects into its page — it stays on the
+    category page, input clears, and it's ready for the next subject (fast
+    repeat-add, matching the facts composer).
+  - The subject list's sort dropdown no longer shows a stray native focus
+    ring — it now matches every other input's explicit `focus:` styling.
+  - Subject list rows gained inline **Rename**/**Delete** — previously only
+    the subject's own page could rename or delete it.
+  - Boolean field values render as a toggle switch instead of a checkbox.
+  - Multi-select field values save explicitly (a **Save** button) instead of
+    round-tripping to the server on every single pill click.
+  - Color field values show an actual swatch in the read-only pill, not the
+    raw hex string.
+  - Link/List field values render as clickable, hover-carded mentions (same
+    styling as fact mentions) instead of plain text.
+  - Scale field values show their min/max alongside the slider, and the
+    read-only pill shows "value/max".
+  - Adding a tag to a subject is now reliable — the previous fire-and-forget
+    save gave no feedback and looked like only one tag could ever be added
+    (multiple tags always worked server-side; this was a client bug).
+  - Scale and Color field values could fail to save on the first click
+    ("Enter a number." / "Enter a value.") even though the slider/swatch
+    visually showed a value — the displayed fallback (scale min / default
+    gray) wasn't what actually got submitted unless the user touched the
+    control first. Save now submits the same fallback that's displayed.
+  - Suggested category chips (Biomes, Events, etc.) no longer offer a
+    suggestion that matches a category (name + icon) already in the world.
 - Fixed a React hydration error on the world, category, and subject pages caused by
   `@dnd-kit`'s non-SSR-safe `aria-describedby` id — each `DndContext` now has a stable
   `id` (`category-list`, `schema-fields`, `facts-list`).
