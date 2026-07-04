@@ -14,14 +14,19 @@ never pushed on you.
 
 Early development. In place: architecture, tooling, **auth** (step 3), the
 **data model** (step 4), **world CRUD** (step 5), the **category + schema
-editor** (step 6), **subject CRUD with tags and field values** (step 7), and the
+editor** (step 6), **subject CRUD with tags and field values** (step 7), the
 **facts engine** (step 8) — fast-capture facts with drag-reorder, draft autosave,
-and soft delete — and **`@mention` autocomplete** (step 9) — type `@` to mention
+and soft delete — **`@mention` autocomplete** (step 9) — type `@` to mention
 any subject, with rename-safe live links, a hover card, and a "Referenced by"
-rail. Plus project-wide **soft delete**
+rail — **backlink organization** (step 10, select backlinks → promote to a List
+field), the **`!` field command** (step 11, fill or create a schema field inline
+from a fact line), and **world search & filtering** (step 12, search names, fact
+text, and field values with category/tag filters and a tag browser). Plus
+project-wide **soft delete**
 ([ADR 0005](docs/adr/0005-soft-delete-recently-deleted.md)) with ancestor
 reachability ([ADR 0006](docs/adr/0006-ancestor-reachability-tombstone.md)).
-**Backlink organization** (step 10) is next. See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+**Search & filtering** is done; **templates** (step 13) is next. See
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Stack
 
