@@ -6,6 +6,18 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **World search & filtering (step 12).** A persistent search bar in a new
+  per-world header searches subject names, fact text, and schema field values
+  (matched on both the field name and its value) across the whole world, with a
+  live dropdown preview and a full `/search` page. Filter by category (any of)
+  and tag (all of); state lives in the URL, so results are shareable. Fact and
+  Link/List-field matches use the same dual-match as backlinks — a subject is
+  found by a name that's referenced but never stored in the matched row (a fact
+  mentioning it, or a field linking to it). The tag filter list, with per-tag
+  subject counts, doubles as the tag browser; each tag in the tag manager gained
+  a "Browse" link into it.
+
 ### Changed
 - Deleting a category with subjects is no longer blocked — it now confirms first,
   showing the subject count and a few names, since soft-delete hides them losslessly

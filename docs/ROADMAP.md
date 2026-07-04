@@ -20,7 +20,7 @@ Status: ✅ done · 🚧 in progress · ⬜ not started
 | 9 | **@mention autocomplete** — typeahead, live render, raw backlinks | ✅ |
 | 10 | **Backlink organization** — select backlinks → promote to List fields | ✅ |
 | 11 | **`!` field autocomplete** — inline schema fill + create-field | ✅ |
-| 12 | **Search & filtering** — names + fact content, category/tag filters, tag browser | ⬜ |
+| 12 | **Search & filtering** — names + fact content, category/tag filters, tag browser | ✅ |
 | 13 | **Templates** — schema + world templates, library | ⬜ |
 | 14 | **Onboarding guide panel** | ⬜ |
 | 15 | **Global dashboard** — account-level home: recently viewed (view history), recently edited/created across all worlds, tips, announcements/updates, live events, release notes. Placement flexible. | ⬜ |

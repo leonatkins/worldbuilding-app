@@ -49,3 +49,15 @@ offers to create one. The line is consumed, never saved as a fact. The other of
 the two deliberate bridges by which facts crystallize into schema (design §4.3),
 alongside Backlink promotion.
 _Avoid_: Bang command, `!` command, field autocomplete
+
+**Search**:
+A world-scoped search over subject names, fact text, and schema field values
+(matched on both the field's name and its value) — combinable with category
+(any-of) and tag (all-of) filters. It extends the fact dual-match (ADR 0001) to
+fields: a Link/List field matches through its linked subject's current name, the
+same way a fact matches through a Mention's resolved name, so a query is found
+even when its text is never stored in the matched row's bytes. The tag filter
+list, with per-tag subject counts, doubles as the tag browser — there is no
+separate browsing surface.
+_Avoid_: Semantic search, AI search (the PRD §7 World Q&A is a distinct, future
+AI feature — this is plain substring + dual-match)

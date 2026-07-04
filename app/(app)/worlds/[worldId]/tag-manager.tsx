@@ -9,6 +9,7 @@
  * naming the affected subject count, same shape as CategoryRow's confirm-delete.
  */
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { renameTag, deleteTag } from "@/app/actions/tags";
 import { MAX_NAME_LENGTH } from "@/lib/validation";
 
@@ -109,6 +110,12 @@ function TagRow({ worldId, tag }: { worldId: string; tag: WorldTag }) {
         {tag.subjectCount} {tag.subjectCount === 1 ? "subject" : "subjects"}
       </span>
       <div className="flex shrink-0 items-center gap-1 text-sm text-neutral-500">
+        <Link
+          href={`/worlds/${worldId}/search?tag=${tag.id}`}
+          className="rounded-md px-2 py-1 transition hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+        >
+          Browse
+        </Link>
         <button
           type="button"
           onClick={() => setMode("rename")}
