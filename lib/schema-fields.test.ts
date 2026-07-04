@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { validateField, isFieldType, resolveInverseLabel } from "./schema-fields";
+import {
+  validateField,
+  isFieldType,
+  resolveInverseLabel,
+  guessFieldType,
+  fuzzyMatchFields,
+} from "./schema-fields";
 
 describe("isFieldType", () => {
   it("accepts enum values and rejects others", () => {
@@ -98,5 +104,55 @@ describe("resolveInverseLabel", () => {
     expect(resolveInverseLabel({ name: "Mentor", inverseLabel: null })).toBe("Mentor");
     expect(resolveInverseLabel({ name: "Mentor", inverseLabel: "  " })).toBe("Mentor");
     expect(resolveInverseLabel({ name: "Mentor", inverseLabel: "Student" })).toBe("Student");
+  });
+});
+
+describe("guessFieldType", () => {
+  it("recognizes yes/no/true/false as Boolean, case-insensitively", () => {
+    for (const s of ["yes", "NO", "Y", "n", "True", "FALSE"]) {
+      expect(guessFieldType(s)).toBe("Boolean");
+    }
+  });
+
+  it("recognizes numeric strings as Number", () => {
+    expect(guessFieldType("42")).toBe("Number");
+    expect(guessFieldType(" -3.5 ")).toBe("Number");
+  });
+
+  it("recognizes date-like strings as Date", () => {
+    expect(guessFieldType("4/27/1304")).toBe("Date");
+    expect(guessFieldType("2026-07-04")).toBe("Date");
+  });
+
+  it("falls back to Text for anything else", () => {
+    expect(guessFieldType("Gryffindor")).toBe("Text");
+    expect(guessFieldType("")).toBe("Text");
+  });
+});
+
+describe("fuzzyMatchFields", () => {
+  const fields = [{ name: "Birthday" }, { name: "Population" }, { name: "Mentor" }];
+
+  it("matches subsequences, not just substrings", () => {
+    expect(fuzzyMatchFields(fields, "bday")).toEqual([{ name: "Birthday" }]);
+    expect(fuzzyMatchFields(fields, "pop")).toEqual([{ name: "Population" }]);
+  });
+
+  it("is case-insensitive", () => {
+    expect(fuzzyMatchFields(fields, "BDAY")).toEqual([{ name: "Birthday" }]);
+  });
+
+  it("returns everything for an empty query", () => {
+    expect(fuzzyMatchFields(fields, "")).toEqual(fields);
+  });
+
+  it("excludes fields that don't contain the query as a subsequence", () => {
+    expect(fuzzyMatchFields(fields, "xyz")).toEqual([]);
+  });
+
+  it("ranks tighter (less spread-out) matches first when the start position ties", () => {
+    const candidates = [{ name: "Xaqqb" }, { name: "Xab" }];
+    // Both match "ab" starting at the same index; "Xab" is contiguous (tighter).
+    expect(fuzzyMatchFields(candidates, "ab").map((f) => f.name)).toEqual(["Xab", "Xaqqb"]);
   });
 });

@@ -11,6 +11,7 @@
  * 0007) and the read view renders markers as live `<Mention>` links.
  */
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   closestCenter,
@@ -38,10 +39,14 @@ import {
   resolveMentionRefs,
   type FactResult,
 } from "@/app/actions/facts";
+import { setScalarValue, setLinkValue, setListValue } from "@/app/actions/field-values";
+import { createField } from "@/app/actions/schema-fields";
 import { midpointPosition } from "@/lib/ordering";
 import { parseFact, mentionedIds, type FactToken } from "@/lib/facts";
+import { parseFieldCommandValue } from "@/lib/field-values";
 import type { ResolvedMention } from "@/lib/mentions";
-import { MentionInput } from "./mention-input";
+import { MentionInput, type FieldCommand } from "./mention-input";
+import type { SchemaField } from "../../categories/[categoryId]/schema-editor";
 import { Mention } from "./mention";
 
 export type Fact = { id: string; body: string; position: number };
@@ -55,12 +60,17 @@ const DRAFT_EVENT = "fact-draft-change";
 export function FactsList({
   worldId,
   subjectId,
+  categoryId,
+  fields,
   facts,
   deletedFacts,
   mentions,
 }: {
   worldId: string;
   subjectId: string;
+  /** The subject's category and its fields — step 11 field command's typeahead source. */
+  categoryId: string;
+  fields: SchemaField[];
   facts: Fact[];
   deletedFacts: DeletedFact[];
   mentions: MentionMap;
@@ -108,7 +118,13 @@ export function FactsList({
     <section className="space-y-4">
       <h2 className="text-sm font-medium text-neutral-500">Facts</h2>
 
-      <FactComposer worldId={worldId} subjectId={subjectId} mentions={mentions} />
+      <FactComposer
+        worldId={worldId}
+        subjectId={subjectId}
+        categoryId={categoryId}
+        fields={fields}
+        mentions={mentions}
+      />
 
       {items.length > 0 && (
         <DndContext id="facts-list" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -151,12 +167,17 @@ function subscribeDraft(cb: () => void) {
 function FactComposer({
   worldId,
   subjectId,
+  categoryId,
+  fields,
   mentions,
 }: {
   worldId: string;
   subjectId: string;
+  categoryId: string;
+  fields: SchemaField[];
   mentions: MentionMap;
 }) {
+  const router = useRouter();
   const draftKey = `fact-draft:${subjectId}`;
   // The serialized draft string (cross-tab/reload aware) is still the source of
   // truth (memory fact_draft_autosave); only the editor surface changed.
@@ -213,6 +234,71 @@ function FactComposer({
     });
   }
 
+  const fieldCommand: FieldCommand = {
+    subjectId,
+    fields,
+    onSubmit: async (field, rawValue) => {
+      if (field.type === "Link" || field.type === "List") {
+        const ids = mentionedIds(rawValue);
+        if (field.type === "Link" && ids.length > 1) {
+          return { error: "Link only takes one — remove one of the mentions." };
+        }
+        const fd = new FormData();
+        fd.set("worldId", worldId);
+        fd.set("subjectId", subjectId);
+        fd.set("fieldId", field.id);
+        let result;
+        if (field.type === "Link") {
+          fd.set("linkedSubjectId", ids[0] ?? "");
+          result = await setLinkValue(fd);
+        } else {
+          fd.set("subjectIds", JSON.stringify(ids));
+          result = await setListValue(fd);
+        }
+        if (!result.error) router.refresh();
+        return result;
+      }
+
+      const parsed = parseFieldCommandValue(field.type, rawValue, {
+        selectOptions: field.select_options,
+        scaleMin: field.scale_min,
+        scaleMax: field.scale_max,
+      });
+      if ("error" in parsed) return { error: parsed.error };
+
+      const fd = new FormData();
+      fd.set("worldId", worldId);
+      fd.set("subjectId", subjectId);
+      fd.set("fieldId", field.id);
+      if (field.type === "MultiSelect") fd.set("values", JSON.stringify(parsed.value));
+      else fd.set("value", String(parsed.value));
+      const result = await setScalarValue(fd);
+      if (!result.error) router.refresh();
+      return result;
+    },
+    onCreateField: async (name, guessedType, rawValue) => {
+      const parsed = parseFieldCommandValue(guessedType, rawValue);
+      if ("error" in parsed) return { error: parsed.error };
+
+      const createFd = new FormData();
+      createFd.set("worldId", worldId);
+      createFd.set("categoryId", categoryId);
+      createFd.set("name", name);
+      createFd.set("type", guessedType);
+      const created = await createField(createFd);
+      if (created.error || !created.id) return { error: created.error ?? "Could not create field." };
+
+      const valueFd = new FormData();
+      valueFd.set("worldId", worldId);
+      valueFd.set("subjectId", subjectId);
+      valueFd.set("fieldId", created.id);
+      valueFd.set("value", String(parsed.value));
+      const result = await setScalarValue(valueFd);
+      if (!result.error) router.refresh();
+      return result;
+    },
+  };
+
   return (
     <div className="space-y-1">
       <MentionInput
@@ -220,8 +306,9 @@ function FactComposer({
         worldId={worldId}
         initialTokens={initialTokens}
         resolved={{ ...mentions, ...draftNames }}
-        placeholder="Write a fact… @ to mention. Enter to save."
+        placeholder="Write a fact… @ to mention, ! to fill a field. Enter to save."
         autoFocus={editorKey > 0}
+        fieldCommand={fieldCommand}
         onChange={persist}
         onEnter={submit}
       />

@@ -63,6 +63,53 @@ export function isFieldType(v: string): v is FieldType {
 }
 
 /**
+ * Guess a field type from raw typed text (step 11 field command's inline
+ * "Create new field" flow). Only the four types fully determined by a
+ * name + value — no config a one-line prompt can't capture. `Text` is the
+ * always-safe fallback; it never blocks field creation.
+ */
+export function guessFieldType(raw: string): "Text" | "Number" | "Date" | "Boolean" {
+  const s = raw.trim();
+  if (/^(yes|no|y|n|true|false)$/i.test(s)) return "Boolean";
+  if (s !== "" && !Number.isNaN(Number(s))) return "Number";
+  if (/^\d{1,4}([/.-])\d{1,2}\1\d{1,4}$/.test(s)) return "Date";
+  return "Text";
+}
+
+/**
+ * Case-insensitive subsequence fuzzy match (step 11 field command): every
+ * character of `query`, in order, must appear somewhere in the field's name.
+ * Tighter matches (query found earlier / more contiguously) rank first.
+ * Client-side only — a category's field list is always small enough to
+ * filter in memory, unlike the `@` mention search (world-wide subjects).
+ */
+export function fuzzyMatchFields<T extends { name: string }>(fields: T[], query: string): T[] {
+  const q = query.trim().toLowerCase();
+  if (q === "") return fields;
+
+  const scored: { field: T; index: number; spread: number }[] = [];
+  for (const field of fields) {
+    const name = field.name.toLowerCase();
+    let qi = 0;
+    let firstIndex = -1;
+    let lastIndex = -1;
+    for (let ni = 0; ni < name.length && qi < q.length; ni++) {
+      if (name[ni] === q[qi]) {
+        if (firstIndex === -1) firstIndex = ni;
+        lastIndex = ni;
+        qi++;
+      }
+    }
+    if (qi === q.length) {
+      scored.push({ field, index: firstIndex, spread: lastIndex - firstIndex });
+    }
+  }
+
+  scored.sort((a, b) => a.index - b.index || a.spread - b.spread);
+  return scored.map((s) => s.field);
+}
+
+/**
  * The label shown for a List/Link field's backlink, from the target's side
  * (step 10). `inverseLabel` is optional — the forward field name is always a
  * safe fallback, so a backlink is never shown with a blank label.

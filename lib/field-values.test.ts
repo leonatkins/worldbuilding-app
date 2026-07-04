@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { coerceScalarValue, formatScalarValue } from "./field-values";
+import { coerceScalarValue, formatScalarValue, parseFieldCommandValue } from "./field-values";
 
 describe("coerceScalarValue", () => {
   it("trims text and rejects empty", () => {
@@ -47,6 +47,38 @@ describe("coerceScalarValue", () => {
   it("refuses subject-reference types", () => {
     expect("error" in coerceScalarValue("Link", "x")).toBe(true);
     expect("error" in coerceScalarValue("List", "x")).toBe(true);
+  });
+});
+
+describe("parseFieldCommandValue", () => {
+  it("accepts yes/no/y/n/true/false case-insensitively for Boolean", () => {
+    for (const s of ["yes", "Y", "TRUE"]) {
+      expect(parseFieldCommandValue("Boolean", s)).toEqual({ value: true });
+    }
+    for (const s of ["no", "N", "False"]) {
+      expect(parseFieldCommandValue("Boolean", s)).toEqual({ value: false });
+    }
+    expect(parseFieldCommandValue("Boolean", "maybe")).toEqual({ error: "Enter yes or no." });
+  });
+
+  it("matches Select options case-insensitively", () => {
+    expect(parseFieldCommandValue("Select", "GOOD", { selectOptions: ["Good", "Evil"] })).toEqual({
+      value: "Good",
+    });
+    expect(
+      parseFieldCommandValue("Select", "neutral", { selectOptions: ["Good", "Evil"] }),
+    ).toEqual({ error: "Pick one of the options." });
+  });
+
+  it("splits MultiSelect on commas and matches case-insensitively", () => {
+    expect(
+      parseFieldCommandValue("MultiSelect", "red, BLUE", { selectOptions: ["Red", "Blue", "Green"] }),
+    ).toEqual({ value: ["Red", "Blue"] });
+  });
+
+  it("passes other types through to coerceScalarValue unchanged", () => {
+    expect(parseFieldCommandValue("Number", "42")).toEqual({ value: 42 });
+    expect(parseFieldCommandValue("Text", "hi")).toEqual({ value: "hi" });
   });
 });
 

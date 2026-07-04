@@ -40,3 +40,12 @@ optional `inverse_label` supplies the role name shown for its own backlinks
 backlinks and promoting them into a List field is one of the three ways facts
 crystallize into schema (design §4.3).
 _Avoid_: Reverse mention, inverse reference
+
+**Field command**:
+Typing `!` as the first character of a fresh fact fills a schema field directly
+instead of writing a fact — a typeahead matches the category's fields by name,
+and the value that follows is parsed for that field's type; an unmatched name
+offers to create one. The line is consumed, never saved as a fact. The other of
+the two deliberate bridges by which facts crystallize into schema (design §4.3),
+alongside Backlink promotion.
+_Avoid_: Bang command, `!` command, field autocomplete

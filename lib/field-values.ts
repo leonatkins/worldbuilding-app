@@ -77,6 +77,46 @@ export function coerceScalarValue(
   }
 }
 
+/**
+ * Coerce a scalar value typed as free text (step 11 field command's
+ * `!fieldname value` line) rather than picked from a form control. Only
+ * Boolean/Select/MultiSelect need normalizing before `coerceScalarValue` can
+ * accept them — free-typed text won't match its stricter expectations
+ * ("true"/"on" for Boolean, an exact option string for Select). Everything
+ * else passes through unchanged.
+ */
+export function parseFieldCommandValue(
+  type: FieldType,
+  raw: string,
+  config: ScalarConfig = {},
+): CoerceResult {
+  if (type === "Boolean") {
+    const s = raw.trim().toLowerCase();
+    if (["yes", "y", "true"].includes(s)) return coerceScalarValue(type, "true", config);
+    if (["no", "n", "false"].includes(s)) return coerceScalarValue(type, "false", config);
+    return { error: "Enter yes or no." };
+  }
+
+  if (type === "Select") {
+    const s = raw.trim();
+    const match = config.selectOptions?.find((o) => o.toLowerCase() === s.toLowerCase());
+    return coerceScalarValue(type, match ?? s, config);
+  }
+
+  if (type === "MultiSelect") {
+    const parts = raw
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+    const resolved = parts.map(
+      (p) => config.selectOptions?.find((o) => o.toLowerCase() === p.toLowerCase()) ?? p,
+    );
+    return coerceScalarValue(type, resolved, config);
+  }
+
+  return coerceScalarValue(type, raw, config);
+}
+
 /** Human-readable rendering of a stored scalar value (read-only display). */
 export function formatScalarValue(type: FieldType, value: unknown): string {
   if (value === null || value === undefined) return "";

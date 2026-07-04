@@ -11,16 +11,41 @@
  * `initialTokens` and mutate the DOM directly thereafter, surfacing the serialized
  * string through `onChange`. This is the most JS-heavy widget in the app; the risk
  * is concentrated in @-detection, caret-anchored typeahead, and paste (ADR 0007).
+ *
+ * `fieldCommand` (step 11) layers a second, mutually-exclusive trigger onto the
+ * same surface: `!` as the very first character opens a field-name typeahead
+ * instead of a mention one. Domain logic (parsing a typed value per field type,
+ * calling the write actions) lives in the caller's `onSubmit`/`onCreateField` —
+ * this component only owns detection, the two popovers, and dispatch.
  */
 import { useEffect, useRef, useState } from "react";
 import { type FactToken } from "@/lib/facts";
-import { searchSubjectsInWorld } from "@/app/actions/subjects";
+import { searchSubjectsInWorld, searchSubjects } from "@/app/actions/subjects";
 import type { ResolvedMention } from "@/lib/mentions";
+import { fuzzyMatchFields, guessFieldType, FIELD_TYPE_LABELS } from "@/lib/schema-fields";
+import type { SchemaField } from "../../categories/[categoryId]/schema-editor";
 
 type Suggestion = { id: string; name: string; categoryName: string | null };
 
 const chipClass =
   "mx-px rounded bg-neutral-100 px-1 font-semibold text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100";
+
+export type GuessedFieldType = "Text" | "Number" | "Date" | "Boolean";
+
+export type FieldCommand = {
+  /** The subject being edited — excluded from Link/List value search results. */
+  subjectId: string;
+  /** The subject's category's fields — both filled and empty, name-matched. */
+  fields: SchemaField[];
+  /** Existing-field fill: `rawValue` is the typed text after `!fieldname `. */
+  onSubmit: (field: SchemaField, rawValue: string) => Promise<{ error?: string }>;
+  /** Unmatched-name confirm: type guessed from `rawValue` by the caller/UI. */
+  onCreateField: (
+    name: string,
+    guessedType: GuessedFieldType,
+    rawValue: string,
+  ) => Promise<{ error?: string }>;
+};
 
 export function MentionInput({
   worldId,
@@ -28,6 +53,7 @@ export function MentionInput({
   resolved,
   placeholder,
   autoFocus,
+  fieldCommand,
   onChange,
   onEnter,
   onEscape,
@@ -38,6 +64,8 @@ export function MentionInput({
   resolved: Record<string, ResolvedMention>;
   placeholder?: string;
   autoFocus?: boolean;
+  /** Only passed by the fresh-fact composer (step 11) — never the edit surface. */
+  fieldCommand?: FieldCommand;
   onChange: (serialized: string) => void;
   /** Enter with the typeahead closed — the composer/editor saves. */
   onEnter: () => void;
@@ -45,7 +73,7 @@ export function MentionInput({
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Typeahead state.
+  // Mention (`@`) typeahead state.
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<Suggestion[]>([]);
   const [active, setActive] = useState(0);
@@ -53,6 +81,19 @@ export function MentionInput({
   // Where the `@` trigger sits, captured at detection so a pick can replace it.
   const trigger = useRef<{ node: Text; at: number; end: number } | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Field-command (`!`) typeahead + create-confirm state.
+  const [fieldOpen, setFieldOpen] = useState(false);
+  const [fieldResults, setFieldResults] = useState<SchemaField[]>([]);
+  const [fieldActive, setFieldActive] = useState(0);
+  const [fieldCaret, setFieldCaret] = useState<{ left: number; top: number } | null>(null);
+  const [pendingCreate, setPendingCreate] = useState<{
+    name: string;
+    guessedType: GuessedFieldType;
+    rawValue: string;
+  } | null>(null);
+  const [fieldError, setFieldError] = useState("");
+  const [fieldPending, setFieldPending] = useState(false);
 
   // Populate the editor once from the initial tokens.
   useEffect(() => {
@@ -80,6 +121,53 @@ export function MentionInput({
     trigger.current = null;
   }
 
+  /**
+   * Match `rest` (the field-command text after `!`) against a real field's
+   * name as a prefix — field names may contain spaces ("Is Alive", "Eye
+   * Color"), so the split can't just be "up to the first whitespace". Picks
+   * the longest matching name when more than one is a prefix. `rawValue` is
+   * whatever's left after the name, trimmed.
+   */
+  function findFieldByPrefix(rest: string): { field: SchemaField; rawValue: string } | null {
+    if (!fieldCommand) return null;
+    const lowerRest = rest.toLowerCase();
+    let best: { field: SchemaField; rawValue: string } | null = null;
+    for (const field of fieldCommand.fields) {
+      const lowerName = field.name.toLowerCase();
+      let rawValue: string | null = null;
+      if (lowerRest === lowerName) rawValue = "";
+      else if (lowerRest.startsWith(lowerName + " ") || lowerRest.startsWith(lowerName + "\t")) {
+        rawValue = rest.slice(field.name.length).trim();
+      }
+      if (rawValue !== null && (!best || field.name.length > best.field.name.length)) {
+        best = { field, rawValue };
+      }
+    }
+    return best;
+  }
+
+  /**
+   * When the current line is a field command (`!name value…`) whose name is
+   * already locked in (a space was typed), resolve it to a real field — used
+   * to decide whether/how a nested `@` in the value should search (step 11
+   * §4). Returns null outside a field-command line, or while the name is
+   * still being typed (no space yet — the field-name typeahead owns that).
+   */
+  function resolveLockedField(text: string): SchemaField | null {
+    if (!fieldCommand || !text.startsWith("!")) return null;
+    const rest = text.slice(1);
+    const lowerRest = rest.toLowerCase();
+    let best: SchemaField | null = null;
+    for (const field of fieldCommand.fields) {
+      const prefix = field.name.toLowerCase() + " ";
+      if ((lowerRest.startsWith(prefix) || lowerRest.startsWith(field.name.toLowerCase() + "\t")) &&
+        (!best || field.name.length > best.name.length)) {
+        best = field;
+      }
+    }
+    return best;
+  }
+
   /** After any input, detect an active `@query` ending at the caret. */
   function detect() {
     const sel = window.getSelection();
@@ -95,6 +183,16 @@ export function MentionInput({
     const m = /(^|\s)@([^\s@{}]*)$/.exec(before);
     if (!m) return closeTypeahead();
 
+    // Inside a field-command value, `@` only makes sense for a resolved
+    // Link/List field — anywhere else in a `!` line it stays literal text.
+    // Ordinary fact text (not a `!` line at all) is completely unaffected.
+    const lineText = serialize(root);
+    const isFieldLine = !!fieldCommand && lineText.startsWith("!");
+    const locked = isFieldLine ? resolveLockedField(lineText) : null;
+    if (isFieldLine && (!locked || (locked.type !== "Link" && locked.type !== "List"))) {
+      return closeTypeahead();
+    }
+
     const query = m[2];
     trigger.current = { node: textNode, at: offset - query.length - 1, end: offset };
 
@@ -104,8 +202,50 @@ export function MentionInput({
     setActive(0);
     clearTimeout(debounce.current);
     debounce.current = setTimeout(() => {
-      void searchSubjectsInWorld(worldId, query).then(setResults);
+      void runMentionSearch(locked, query).then(setResults);
     }, 150);
+  }
+
+  /** Category-scoped search inside a Link/List field-command value, else the plain world-wide mention search. */
+  async function runMentionSearch(locked: SchemaField | null, query: string): Promise<Suggestion[]> {
+    if (locked && fieldCommand) {
+      const rows = await searchSubjects(locked.target_category_id ?? "", query, fieldCommand.subjectId);
+      return rows.map((r) => ({ ...r, categoryName: null }));
+    }
+    return searchSubjectsInWorld(worldId, query);
+  }
+
+  function closeFieldTypeahead() {
+    setFieldOpen(false);
+    setFieldResults([]);
+    setFieldActive(0);
+  }
+
+  /**
+   * While the field name is still being typed (content is exactly `!query`,
+   * caret at the end, no space yet), fuzzy-match it against the category's
+   * fields. Closes the instant a space is typed — matching the `@` regex's
+   * whitespace boundary (step 11 §3).
+   */
+  function detectField() {
+    if (!fieldCommand) return closeFieldTypeahead();
+    const root = editorRef.current;
+    const sel = window.getSelection();
+    if (!root || !sel || !sel.isCollapsed || sel.rangeCount === 0) return closeFieldTypeahead();
+    const node = sel.anchorNode;
+    if (!node || node.nodeType !== Node.TEXT_NODE || !root.contains(node)) return closeFieldTypeahead();
+    if (node !== root.lastChild || sel.anchorOffset !== (node.textContent ?? "").length) {
+      return closeFieldTypeahead();
+    }
+
+    const m = /^!([^\s!@{}]*)$/.exec(serialize(root));
+    if (!m) return closeFieldTypeahead();
+
+    setFieldResults(fuzzyMatchFields(fieldCommand.fields, m[1]));
+    setFieldActive(0);
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    setFieldCaret({ left: rect.left, top: rect.bottom });
+    setFieldOpen(true);
   }
 
   function pick(s: Suggestion) {
@@ -134,6 +274,82 @@ export function MentionInput({
     emit();
   }
 
+  /** Rewrite the typed `!query` to the field's real name + a trailing space. */
+  function pickField(field: SchemaField) {
+    const root = editorRef.current;
+    if (!root) return;
+    root.replaceChildren(document.createTextNode(`!${field.name} `));
+    placeCaretAtEnd(root);
+    closeFieldTypeahead();
+    emit();
+  }
+
+  /** Whether the current line is a field-command line at all (gates Enter in onKeyDown). */
+  function isFieldCommandLine(): boolean {
+    const root = editorRef.current;
+    return !!root && /^!\S/.test(serialize(root));
+  }
+
+  /** Clear the composer after a successful fill/create — never becomes a fact. */
+  function clearLine() {
+    const root = editorRef.current;
+    if (!root) return;
+    root.replaceChildren();
+    closeFieldTypeahead();
+    setPendingCreate(null);
+    setFieldError("");
+    emit();
+  }
+
+  /** Enter-time resolution (step 11 §3/§4): exact name match fills, else offers to create. */
+  async function resolveFieldCommand() {
+    if (!fieldCommand || fieldPending) return;
+    const root = editorRef.current;
+    if (!root) return;
+    const text = serialize(root);
+    if (!text.startsWith("!")) return;
+    const rest = text.slice(1);
+    if (rest.trim() === "") return;
+
+    const matched = findFieldByPrefix(rest);
+    if (!matched) {
+      // No real field's name is a prefix of what's typed — offer to create one,
+      // using the first whitespace-bounded token as the new field's name.
+      const m = /^(\S+)(?:\s+([\s\S]*))?$/.exec(rest);
+      if (!m) return;
+      const name = m[1];
+      const rawValue = (m[2] ?? "").trim();
+      setPendingCreate({ name, guessedType: guessFieldType(rawValue), rawValue });
+      return;
+    }
+
+    setFieldPending(true);
+    setFieldError("");
+    const result = await fieldCommand.onSubmit(matched.field, matched.rawValue);
+    setFieldPending(false);
+    if (result.error) setFieldError(result.error);
+    else clearLine();
+  }
+
+  async function confirmCreate() {
+    if (!fieldCommand || !pendingCreate || fieldPending) return;
+    setFieldPending(true);
+    setFieldError("");
+    const result = await fieldCommand.onCreateField(
+      pendingCreate.name,
+      pendingCreate.guessedType,
+      pendingCreate.rawValue,
+    );
+    setFieldPending(false);
+    if (result.error) setFieldError(result.error);
+    else clearLine();
+  }
+
+  function cancelCreate() {
+    setPendingCreate(null);
+    setFieldError("");
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     if (open) {
       if (e.key === "ArrowDown") {
@@ -160,21 +376,87 @@ export function MentionInput({
         if (e.key === "Escape") e.preventDefault();
         return;
       }
-    } else {
-      if (e.key === "Enter" && !e.shiftKey) {
+      return;
+    }
+
+    if (fieldCommand) {
+      if (pendingCreate) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          void confirmCreate();
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          cancelCreate();
+          return;
+        }
+      }
+
+      if (fieldOpen) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setFieldActive((i) => Math.min(i + 1, Math.max(fieldResults.length - 1, 0)));
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setFieldActive((i) => Math.max(i - 1, 0));
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          closeFieldTypeahead();
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          if (fieldResults[fieldActive]) {
+            e.preventDefault();
+            pickField(fieldResults[fieldActive]);
+            return;
+          }
+          // No result to pick — fall through to full-line resolution below.
+        }
+      }
+
+      // Enter on a `!`-prefixed line resolves/creates instead of saving a fact.
+      if (e.key === "Enter" && !e.shiftKey && isFieldCommandLine()) {
         e.preventDefault();
-        onEnter();
+        void resolveFieldCommand();
         return;
       }
-      if (e.key === "Escape") {
-        onEscape?.();
-        return;
-      }
+    }
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onEnter();
+      return;
+    }
+    if (e.key === "Escape") {
+      onEscape?.();
+      return;
     }
   }
 
   return (
     <div className="relative">
+      {fieldCommand && pendingCreate && (
+        <div className="mb-1.5 flex items-center gap-2 rounded-md border border-neutral-300 bg-neutral-50 px-3 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900">
+          <span>
+            Create <span className="font-semibold">&quot;{pendingCreate.name}&quot;</span> ·{" "}
+            {pendingCreate.guessedType}
+          </span>
+          <span className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => void confirmCreate()} className="hover:text-neutral-900 dark:hover:text-neutral-100">
+              ↵ confirm
+            </button>
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={cancelCreate} className="hover:text-neutral-900 dark:hover:text-neutral-100">
+              esc cancel
+            </button>
+          </span>
+        </div>
+      )}
+
       <div
         ref={editorRef}
         role="textbox"
@@ -186,6 +468,11 @@ export function MentionInput({
         onInput={() => {
           emit();
           detect();
+          detectField();
+          if (fieldCommand) {
+            setPendingCreate(null);
+            setFieldError("");
+          }
         }}
         onKeyDown={onKeyDown}
         onPaste={(e) => {
@@ -194,9 +481,50 @@ export function MentionInput({
           const text = e.clipboardData.getData("text/plain");
           document.execCommand("insertText", false, text);
         }}
-        onBlur={closeTypeahead}
+        onBlur={() => {
+          closeTypeahead();
+          closeFieldTypeahead();
+        }}
         className="min-h-[3.5rem] w-full whitespace-pre-wrap rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition empty:before:text-neutral-400 empty:before:content-[attr(data-placeholder)] focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100"
       />
+
+      {fieldCommand && fieldError && (
+        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldError}</p>
+      )}
+
+      {fieldOpen && fieldCaret && (
+        <ul
+          role="listbox"
+          aria-label="Field suggestions"
+          style={{ left: fieldCaret.left, top: fieldCaret.top + 4 }}
+          className="fixed z-40 max-h-56 w-64 overflow-y-auto rounded-md border border-neutral-200 bg-white py-1 text-sm shadow-lg dark:border-neutral-800 dark:bg-neutral-900"
+        >
+          {fieldResults.length === 0 ? (
+            <li className="px-3 py-1.5 text-neutral-400">No matches</li>
+          ) : (
+            fieldResults.map((f, i) => (
+              <li key={f.id} role="option" aria-selected={i === fieldActive}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    pickField(f);
+                  }}
+                  onMouseEnter={() => setFieldActive(i)}
+                  className={`flex w-full items-baseline gap-2 px-3 py-1.5 text-left transition ${
+                    i === fieldActive ? "bg-neutral-100 dark:bg-neutral-800" : ""
+                  }`}
+                >
+                  <span className="truncate text-neutral-800 dark:text-neutral-100">{f.name}</span>
+                  <span className="ml-auto shrink-0 text-xs text-neutral-400">
+                    {FIELD_TYPE_LABELS[f.type]}
+                  </span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
 
       {open && caret && (
         <ul

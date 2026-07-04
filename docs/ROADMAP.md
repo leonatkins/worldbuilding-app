@@ -19,7 +19,7 @@ Status: ✅ done · 🚧 in progress · ⬜ not started
 | 8 | **Facts engine** — text + `@{id}` markers, ordered entry, inline edit, drag reorder | ✅ |
 | 9 | **@mention autocomplete** — typeahead, live render, raw backlinks | ✅ |
 | 10 | **Backlink organization** — select backlinks → promote to List fields | ✅ |
-| 11 | **`!` field autocomplete** — inline schema fill + create-field | ⬜ |
+| 11 | **`!` field autocomplete** — inline schema fill + create-field | ✅ |
 | 12 | **Search & filtering** — names + fact content, category/tag filters, tag browser | ⬜ |
 | 13 | **Templates** — schema + world templates, library | ⬜ |
 | 14 | **Onboarding guide panel** | ⬜ |

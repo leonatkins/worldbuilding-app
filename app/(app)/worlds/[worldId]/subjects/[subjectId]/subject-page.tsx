@@ -101,6 +101,8 @@ export function SubjectPage(props: Props) {
         <FactsList
           worldId={worldId}
           subjectId={subject.id}
+          categoryId={subject.categoryId}
+          fields={fields}
           facts={facts}
           deletedFacts={deletedFacts}
           mentions={mentions}
