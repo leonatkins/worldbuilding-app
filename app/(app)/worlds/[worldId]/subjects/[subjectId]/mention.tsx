@@ -60,7 +60,7 @@ export function Mention({
     <SubjectHoverCard subjectId={id}>
       <Link
         href={`/worlds/${worldId}/subjects/${id}`}
-        className="font-semibold text-neutral-900 underline-offset-2 transition hover:underline dark:text-neutral-100"
+        className="font-semibold text-neutral-900 underline decoration-neutral-300 underline-offset-2 transition hover:decoration-neutral-900 dark:text-neutral-100 dark:decoration-neutral-600 dark:hover:decoration-neutral-100"
       >
         {resolved.name}
       </Link>

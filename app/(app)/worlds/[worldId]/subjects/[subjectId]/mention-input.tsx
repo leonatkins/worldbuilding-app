@@ -94,6 +94,9 @@ export function MentionInput({
   } | null>(null);
   const [fieldError, setFieldError] = useState("");
   const [fieldPending, setFieldPending] = useState(false);
+  // Whether the current line is a field command at all — drives the visual
+  // treatment (monospace + tint + badge) that marks it as a command, not prose.
+  const [fieldMode, setFieldMode] = useState(false);
 
   // Populate the editor once from the initial tokens.
   useEffect(() => {
@@ -221,6 +224,12 @@ export function MentionInput({
     setFieldActive(0);
   }
 
+  /** Whether the line is a field command at all — recomputed on every input. */
+  function updateFieldMode() {
+    const root = editorRef.current;
+    setFieldMode(!!fieldCommand && !!root && serialize(root).startsWith("!"));
+  }
+
   /**
    * While the field name is still being typed (content is exactly `!query`,
    * caret at the end, no space yet), fuzzy-match it against the category's
@@ -281,6 +290,7 @@ export function MentionInput({
     root.replaceChildren(document.createTextNode(`!${field.name} `));
     placeCaretAtEnd(root);
     closeFieldTypeahead();
+    setFieldMode(true);
     emit();
   }
 
@@ -298,6 +308,7 @@ export function MentionInput({
     closeFieldTypeahead();
     setPendingCreate(null);
     setFieldError("");
+    setFieldMode(false);
     emit();
   }
 
@@ -457,36 +468,48 @@ export function MentionInput({
         </div>
       )}
 
-      <div
-        ref={editorRef}
-        role="textbox"
-        aria-multiline="true"
-        aria-label={placeholder}
-        contentEditable
-        suppressContentEditableWarning
-        data-placeholder={placeholder}
-        onInput={() => {
-          emit();
-          detect();
-          detectField();
-          if (fieldCommand) {
-            setPendingCreate(null);
-            setFieldError("");
-          }
-        }}
-        onKeyDown={onKeyDown}
-        onPaste={(e) => {
-          // Coerce to text/plain — no formatting ever enters the editor.
-          e.preventDefault();
-          const text = e.clipboardData.getData("text/plain");
-          document.execCommand("insertText", false, text);
-        }}
-        onBlur={() => {
-          closeTypeahead();
-          closeFieldTypeahead();
-        }}
-        className="min-h-[3.5rem] w-full whitespace-pre-wrap rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition empty:before:text-neutral-400 empty:before:content-[attr(data-placeholder)] focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100"
-      />
+      <div className="relative">
+        <div
+          ref={editorRef}
+          role="textbox"
+          aria-multiline="true"
+          aria-label={placeholder}
+          contentEditable
+          suppressContentEditableWarning
+          data-placeholder={placeholder}
+          onInput={() => {
+            emit();
+            detect();
+            detectField();
+            updateFieldMode();
+            if (fieldCommand) {
+              setPendingCreate(null);
+              setFieldError("");
+            }
+          }}
+          onKeyDown={onKeyDown}
+          onPaste={(e) => {
+            // Coerce to text/plain — no formatting ever enters the editor.
+            e.preventDefault();
+            const text = e.clipboardData.getData("text/plain");
+            document.execCommand("insertText", false, text);
+          }}
+          onBlur={() => {
+            closeTypeahead();
+            closeFieldTypeahead();
+          }}
+          className={`min-h-[3.5rem] w-full whitespace-pre-wrap rounded-md border px-3 py-2 text-sm outline-none transition empty:before:text-neutral-400 empty:before:content-[attr(data-placeholder)] ${
+            fieldMode
+              ? "border-neutral-400 bg-neutral-50 pr-16 font-mono dark:border-neutral-500 dark:bg-neutral-950"
+              : "border-neutral-300 bg-white focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100"
+          }`}
+        />
+        {fieldMode && !pendingCreate && (
+          <span className="pointer-events-none absolute right-2 top-2 rounded bg-neutral-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+            Field
+          </span>
+        )}
+      </div>
 
       {fieldCommand && fieldError && (
         <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldError}</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signIn, signInWithGoogle, type AuthResult } from "@/app/actions/auth";
 
@@ -15,6 +15,9 @@ export function LoginForm({
     async (_prev, formData) => signIn(formData),
     initialError ? { error: initialError } : null,
   );
+  // Controlled so a failed submit doesn't force the user to retype their
+  // email too — React resets uncontrolled fields after every form action.
+  const [email, setEmail] = useState("");
 
   return (
     <div className="mt-8 space-y-4">
@@ -30,6 +33,8 @@ export function LoginForm({
             name="email"
             required
             autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100"
           />
         </label>

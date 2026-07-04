@@ -43,13 +43,13 @@ export default async function AppLayout({
           </Link>
           <WorldSwitcher worlds={worlds} />
         </div>
-        <div className="flex items-center gap-3 text-sm text-neutral-500">
+        <div className="flex shrink-0 items-center gap-3 text-sm text-neutral-500">
           <CreateMenu />
           <span className="hidden sm:inline">{user.email}</span>
-          <form action={signOut}>
+          <form action={signOut} className="shrink-0">
             <button
               type="submit"
-              className="rounded-md px-2 py-1 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+              className="whitespace-nowrap rounded-md px-2 py-1 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
             >
               Sign out
             </button>

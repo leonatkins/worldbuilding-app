@@ -62,15 +62,16 @@ export default async function CategorySchemaPage({ params }: Props) {
       <div className="space-y-1">
         <Link
           href={`/worlds/${worldId}/categories/${categoryId}`}
-          className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-800 hover:underline dark:hover:text-neutral-200"
+          className="inline-flex items-center gap-2 text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-800 hover:underline dark:hover:text-neutral-200"
         >
-          ← {category.icon ? `${category.icon} ` : ""}{category.name}
+          <span>← {category.icon ?? ""}</span>
+          {category.name}
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight">Edit schema</h1>
         <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-          Schema fields are the structured, queryable facts every{" "}
-          {category.name.toLowerCase()} shares. Optional — add them only when you’d
-          filter or compare by the value.
+          Schema fields are the structured, queryable facts every subject in
+          this category shares. Optional — add them only when you’d filter or
+          compare by the value.
         </p>
       </div>
 

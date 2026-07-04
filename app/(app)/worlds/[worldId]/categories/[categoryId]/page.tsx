@@ -96,9 +96,9 @@ export default async function CategoryPage({ params }: Props) {
           {category.name}
         </h1>
         <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-          Schema fields are the structured, queryable facts every{" "}
-          {category.name.toLowerCase()} shares. Optional — add them only when you’d
-          filter or compare by the value.
+          Schema fields are the structured, queryable facts every subject in
+          this category shares. Optional — add them only when you’d filter or
+          compare by the value.
         </p>
       </div>
 

@@ -75,6 +75,9 @@ export function SchemaEditor({ worldId, categoryId, fields, categories }: Props)
     setItems(fields);
   }
   const [adding, setAdding] = useState(false);
+  // Only one field editor (or the add-field form) open at a time — opening
+  // one closes any other, so editors never stack up.
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const sensors = useSensors(
@@ -128,6 +131,12 @@ export function SchemaEditor({ worldId, categoryId, fields, categories }: Props)
                   categoryId={categoryId}
                   field={field}
                   categories={categories}
+                  editing={editingId === field.id}
+                  onEditStart={() => {
+                    setAdding(false);
+                    setEditingId(field.id);
+                  }}
+                  onEditDone={() => setEditingId(null)}
                 />
               ))}
             </ul>
@@ -147,7 +156,10 @@ export function SchemaEditor({ worldId, categoryId, fields, categories }: Props)
       ) : (
         <button
           type="button"
-          onClick={() => setAdding(true)}
+          onClick={() => {
+            setEditingId(null);
+            setAdding(true);
+          }}
           className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-900 hover:underline dark:hover:text-neutral-100"
         >
           + Add field
@@ -162,15 +174,20 @@ function FieldRow({
   categoryId,
   field,
   categories,
+  editing,
+  onEditStart,
+  onEditDone,
 }: {
   worldId: string;
   categoryId: string;
   field: SchemaField;
   categories: Cat[];
+  editing: boolean;
+  onEditStart: () => void;
+  onEditDone: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: field.id });
-  const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
   const style = {
@@ -187,7 +204,7 @@ function FieldRow({
           categoryId={categoryId}
           categories={categories}
           field={field}
-          onDone={() => setEditing(false)}
+          onDone={onEditDone}
         />
       </li>
     );
@@ -245,7 +262,7 @@ function FieldRow({
         <div className="flex shrink-0 items-center gap-1 text-sm text-neutral-500">
           <button
             type="button"
-            onClick={() => setEditing(true)}
+            onClick={onEditStart}
             className="rounded-md px-2 py-1 transition hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
           >
             Edit
