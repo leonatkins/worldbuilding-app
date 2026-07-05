@@ -1,0 +1,1 @@
+ALTER TABLE "accounts" ADD COLUMN "onboarding_seen_at" timestamp with time zone;

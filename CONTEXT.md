@@ -92,3 +92,12 @@ hardcoded TS constants (git-versioned, no DB table, no `is_official` flag);
 private templates live in the `templates` table (user-owned, RLS own-rows).
 Free to hold on both tiers; names not unique per owner.
 _Avoid_: Preset, starter, blueprint, schema pack
+
+**Onboarding guide**:
+An informational panel (not a tutorial) accessible from a persistent `?` icon
+in the app header, auto-opened once on first login, dismissable, and
+re-accessible. First-login detection is a server column on `accounts`
+(`onboarding_seen_at`, NULL = not yet seen); stamped on dismiss. Conceptual
+copy only at this step (what things ARE); locational copy deferred to the
+near-launch visual-polish pass.
+_Avoid_: Tutorial, walkthrough, onboarding wizard

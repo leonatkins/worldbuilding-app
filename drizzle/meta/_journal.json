@@ -57,6 +57,13 @@
       "when": 1783206622093,
       "tag": "0007_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783206730745,
+      "tag": "0008_onboarding",
+      "breakpoints": true
     }
   ]
 }

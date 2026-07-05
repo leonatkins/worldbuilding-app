@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
 import { WorldSwitcher } from "./world-switcher";
 import { CreateMenu } from "./create-menu";
+import { GuidePanel } from "./_components/guide-panel";
 
 export default async function AppLayout({
   children,
@@ -22,14 +23,21 @@ export default async function AppLayout({
   if (!user) redirect("/login");
   if (!user.email_confirmed_at) redirect("/verify-email");
 
-  // Worlds for the in-world quick switcher (recently-updated first). RLS scopes
-  // this to the signed-in user. The switcher hides itself outside a world.
-  const { data: worldData } = await supabase
-    .from("worlds")
-    .select("id, name")
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false });
-  const worlds = worldData ?? [];
+  // Worlds for the in-world quick switcher (recently-updated first) + the
+  // onboarding seen-state, fetched in parallel (one round-trip each). RLS
+  // scopes both to the signed-in user. The switcher hides itself outside a
+  // world. Step 14: auto-open the guide when `onboarding_seen_at` is null.
+  const [worldData, accountData] = await Promise.all([
+    supabase
+      .from("worlds")
+      .select("id, name")
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false }),
+    supabase.from("accounts").select("onboarding_seen_at").maybeSingle(),
+  ]);
+  const worlds = worldData.data ?? [];
+  const autoOpenGuide = !(accountData.data as { onboarding_seen_at: string | null } | null)
+    ?.onboarding_seen_at;
 
   return (
     <div className="min-h-screen">
@@ -45,6 +53,7 @@ export default async function AppLayout({
         </div>
         <div className="flex shrink-0 items-center gap-3 text-sm text-neutral-500">
           <CreateMenu />
+          <GuidePanel autoOpen={autoOpenGuide} />
           <span className="hidden sm:inline">{user.email}</span>
           <form action={signOut} className="shrink-0">
             <button

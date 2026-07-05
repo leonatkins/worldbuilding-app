@@ -22,7 +22,7 @@
  * - Ordering via `position double precision` (midpoint insertion).
  *
  * Deferred to their feature step: tags + subject_tags (step 7). Templates
- * arrived in step 13.
+ * arrived in step 13; `onboarding_seen_at` on accounts in step 14.
  *
  * AI hook point: none here — AI features (PRD §7) are not built in this phase.
  */
@@ -108,6 +108,10 @@ const deletedAt = () => timestamp("deleted_at", { withTimezone: true });
 export const accounts = pgTable("accounts", {
   id: uuid("id").primaryKey(),
   tier: text("tier").notNull().default("free"),
+  // Step 14 onboarding: NULL = never opened the guide → auto-open on first
+  // login. Stamped on first dismiss (per-account, so a new device for the same
+  // user is not re-onboarded). RLS is already owner-readable; no policy change.
+  onboardingSeenAt: timestamp("onboarding_seen_at", { withTimezone: true }),
 });
 
 /* -------------------------------------------------------------------------- */
