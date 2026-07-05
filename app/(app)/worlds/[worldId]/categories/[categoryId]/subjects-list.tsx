@@ -5,9 +5,9 @@
  * new subject), sortable list (choice persisted in localStorage, worlds-list
  * pattern), and a Recently Deleted section. Mutations via app/actions/subjects.ts.
  */
-import { useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   createSubject,
   renameSubject,
@@ -138,6 +138,15 @@ function CreateSubjectForm({
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // The header "+ → New subject" routes here with ?create=subject; focus the add input.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("create") === "subject") {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [searchParams]);
 
   return (
     <form

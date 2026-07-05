@@ -8,6 +8,7 @@
  * actions in app/actions/categories.ts; reorder writes a midpoint position.
  */
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   DndContext,
@@ -154,6 +155,15 @@ function CreateCategoryForm({
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // The header "+ → New category" routes here with ?create=category; focus the add input.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("create") === "category") {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [searchParams]);
 
   // A suggestion hides once a live category matches its name+icon exactly; editing
   // either (rename or icon change) breaks the match and brings the suggestion back.

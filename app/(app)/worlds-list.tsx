@@ -15,6 +15,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   createWorld,
   renameWorld,
@@ -26,6 +27,7 @@ import {
 import { randomWorldName } from "@/lib/world-names";
 import { MAX_WORLD_NAME_LENGTH } from "@/lib/worlds";
 import type { TemplateListItem } from "@/lib/templates/types";
+import { DiceIcon } from "./_components/dice-icon";
 
 export type World = {
   id: string;
@@ -249,6 +251,42 @@ function EmptyState() {
   );
 }
 
+/** A styled radio dot for the world starting-point choice (accent fill when selected). */
+function StartRadio({
+  label,
+  checked,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label
+      className={`flex items-center gap-2 ${
+        disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer"
+      }`}
+    >
+      <input
+        type="radio"
+        name="startingPointRadio"
+        className="peer sr-only"
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+      />
+      <span className="flex h-4 w-4 items-center justify-center rounded-full border border-neutral-400 transition peer-checked:border-neutral-900 dark:border-neutral-600 dark:peer-checked:border-neutral-100">
+        <span className="h-2 w-2 scale-0 rounded-full bg-neutral-900 transition-transform peer-checked:scale-100 dark:bg-neutral-100" />
+      </span>
+      <span className="text-neutral-500 peer-checked:text-neutral-900 dark:text-neutral-400 dark:peer-checked:text-neutral-100">
+        {label}
+      </span>
+    </label>
+  );
+}
+
 function CreateWorldForm({ templates }: { templates: TemplateListItem[] }) {
   const [state, formAction, pending] = useActionState<WorldResult | null, FormData>(
     async (_prev, formData) => createWorld(formData),
@@ -258,6 +296,16 @@ function CreateWorldForm({ templates }: { templates: TemplateListItem[] }) {
   const [startingPoint, setStartingPoint] = useState<"default" | "blank" | "template">("default");
   const [templateId, setTemplateId] = useState<string>("");
   const worldTemplates = templates.filter((t) => t.kind === "world");
+
+  // The header "+ → New world" routes here with ?create=world; focus + reveal the
+  // name input so the action actually does something (previously a no-op link).
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("create") === "world") {
+      inputRef.current?.focus();
+      inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [searchParams]);
 
   return (
     // noValidate: route empty/whitespace names through the styled server error
@@ -284,9 +332,9 @@ function CreateWorldForm({ templates }: { templates: TemplateListItem[] }) {
           }}
           title="Suggest a name"
           aria-label="Suggest a random name"
-          className="rounded-md border border-neutral-300 px-3 text-base transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          className="flex items-center justify-center rounded-md border border-neutral-300 px-3 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
         >
-          🎲
+          <DiceIcon />
         </button>
         <button
           type="submit"
@@ -296,35 +344,23 @@ function CreateWorldForm({ templates }: { templates: TemplateListItem[] }) {
           {pending ? "Creating…" : "Create"}
         </button>
       </div>
-      <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-500">
-        <label className="flex items-center gap-1.5">
-          <input
-            type="radio"
-            name="startingPointRadio"
-            checked={startingPoint === "default"}
-            onChange={() => setStartingPoint("default")}
-          />
-          Default
-        </label>
-        <label className="flex items-center gap-1.5">
-          <input
-            type="radio"
-            name="startingPointRadio"
-            checked={startingPoint === "blank"}
-            onChange={() => setStartingPoint("blank")}
-          />
-          Blank
-        </label>
-        <label className="flex items-center gap-1.5">
-          <input
-            type="radio"
-            name="startingPointRadio"
-            checked={startingPoint === "template"}
-            onChange={() => setStartingPoint("template")}
-            disabled={worldTemplates.length === 0}
-          />
-          From template
-        </label>
+      <div className="flex flex-wrap items-center gap-4 text-sm">
+        <StartRadio
+          label="Default"
+          checked={startingPoint === "default"}
+          onChange={() => setStartingPoint("default")}
+        />
+        <StartRadio
+          label="Blank"
+          checked={startingPoint === "blank"}
+          onChange={() => setStartingPoint("blank")}
+        />
+        <StartRadio
+          label="From template"
+          checked={startingPoint === "template"}
+          onChange={() => setStartingPoint("template")}
+          disabled={worldTemplates.length === 0}
+        />
         {startingPoint === "template" && (
           <select
             aria-label="World template"
