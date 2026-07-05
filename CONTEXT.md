@@ -101,3 +101,33 @@ re-accessible. First-login detection is a server column on `accounts`
 copy only at this step (what things ARE); locational copy deferred to the
 near-launch visual-polish pass.
 _Avoid_: Tutorial, walkthrough, onboarding wizard
+
+**Home**:
+The account-level landing surface (the app's `/`). Gathers what a returning user
+wants first — recently viewed and recently edited subjects across all worlds, the
+worlds list itself, and light editorial (a tip, what's new) — into one journal-like
+opening spread. The canonical name for this surface; it is deliberately *not* a
+metrics dashboard in feel.
+_Avoid_: Dashboard, overview (that's the per-world hub), landing page
+
+**Overview**:
+A single world's landing hub — its stats, its own recently-viewed/edited subjects,
+and the primary "start here" actions. The per-world analogue of Home; one of the
+three in-world surfaces (Overview, Browse, Manage).
+_Avoid_: World home (ambiguous), dashboard, summary
+
+**Browse**:
+The in-world surface for finding subjects directly — a flat, filterable list of
+every subject in the world, with category and tag as filters (not folders) and an
+empty query meaning "all subjects." The *primary* path to subjects; the same
+surface that runs a query is the same surface that lists everything. A category's
+own **detail page** still exists as a secondary drill-in (its members + schema
+editor), but is no longer the way you *navigate* to subjects.
+_Avoid_: Subjects list (Browse is world-wide), folder, directory
+
+**View history**:
+The account's record of which subjects it has recently opened — one entry per
+subject, the most recent open winning — surfaced as "Recently viewed" on Home and
+on a world's Overview. A record of *reading*, distinct from "recently edited"
+(a record of *writing*, derived from a subject's last-updated time).
+_Avoid_: Activity log, audit trail, recently visited (mixes entities)
