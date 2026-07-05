@@ -61,3 +61,34 @@ list, with per-tag subject counts, doubles as the tag browser — there is no
 separate browsing surface.
 _Avoid_: Semantic search, AI search (the PRD §7 World Q&A is a distinct, future
 AI feature — this is plain substring + dual-match)
+
+**Snapshot**:
+The frozen, detached, UUID-free copy of category/field **structure** a template
+stores (design §4.5); unpacked on apply. Structure only — no subjects, facts,
+values, or UUIDs. List/Link targets are stored portably by `localKey` (world
+templates) or the target category's *name* (schema templates), never by UUID.
+_Avoid_: Template blob, template contents (too vague), serialized world (a
+snapshot is structure, not a whole world's data)
+
+**Apply (a template)**:
+Unpack a snapshot into real `categories` + `schema_fields` rows in a
+destination world; a copy, never a live link (cookie-cutter, not the cookie).
+World-template apply runs through the `createWorld` path (replacing the default
+seed) with an undo-on-failure chain; schema-template apply is either a merge
+into an existing category or a new category from the template.
+_Avoid_: Import, instantiate, deploy
+
+**Stub category**:
+An empty category auto-created on schema-template apply to satisfy a Link/List
+field whose named target is absent in the destination world (A3). Created
+before the referencing field (the `target_category_id` RESTRICT constraint),
+so the field is immediately functional. Reported inline, no modal.
+_Avoid_: Placeholder category, dummy category
+
+**Template**:
+A named, reusable structure — `schema` (one category's fields) or `world`
+(full category structure) — stored as a snapshot. Built-in templates are
+hardcoded TS constants (git-versioned, no DB table, no `is_official` flag);
+private templates live in the `templates` table (user-owned, RLS own-rows).
+Free to hold on both tiers; names not unique per owner.
+_Avoid_: Preset, starter, blueprint, schema pack

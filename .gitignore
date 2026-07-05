@@ -35,3 +35,6 @@ yarn-error.log*
 
 # Playwright MCP session artifacts
 .playwright-mcp/
+
+# kilo planning tool working dir (plan files force-added when referenced)
+.kilo/

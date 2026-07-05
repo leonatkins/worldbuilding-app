@@ -50,6 +50,13 @@
       "when": 1782940251463,
       "tag": "0006_overrated_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783206622093,
+      "tag": "0007_templates",
+      "breakpoints": true
     }
   ]
 }

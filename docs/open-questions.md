@@ -121,19 +121,28 @@ worth interrupting feature work now.
 These were explicitly logged during grilling and are restated here so they aren't
 buried in `step-6-7-grill-notes.md`.
 
-### Q9 🟢 Re-point a List/Link field that already has values
+### ~~Q9 🟢 Re-point a List/Link field that already has values~~ — resolved (step 13)
 When a field's `target_category_id` changes, existing values point at
 now-wrong-category subjects. Current handling clears that field's values on
 re-point (with a count shown). Confirm this still holds end-to-end once there's
 real data, and that the count shown matches what's cleared.
+**Resolved:** the Q9/Q10 compatibility matrix (`.kilo/plans/1783203476724-step-13-14-templates-onboarding.md`,
+A5 / Q9-Q10 matrix) governs this: a List/Link target-category change is a
+`clear-all` transition (lossy → confirm with the affected-value count). The
+matrix lives in `lib/templates/merge.ts` (`classifyTransition`); the same matrix
+backs template-merge collisions. ADR 0010 records the overwrite + lossy-confirm
+decision.
 
-### Q10 🔵 Change a field's *type* with existing values
+### ~~Q10 🔵 Change a field's *type* with existing values~~ — resolved (step 13)
 Incompatible type changes should clear values (counted warning); compatible
 widenings (e.g. Select → MultiSelect) should migrate, not clear. The exact
 compatibility matrix was deferred.
-**Recommend:** write the compatibility matrix explicitly (which type→type
-migrates vs clears) before exposing type-change on fields that have values. Until
-then, the safe default is clear-with-confirm.
+**Resolved:** the full matrix is decided and implemented in
+`lib/templates/merge.ts` (`classifyTransition`): same-type config-only changes
+that keep all values migrate silently; Select/MultiSelect option-set drops prune
+only orphaned values; cross-scalar-type changes per-value-parse (keep parseable,
+clear failures); cross-storage-family, MultiSelect→Select narrowing, and Scale
+narrowing clear all values. See the plan's Q9/Q10 matrix table and ADR 0010.
 
 ### Q11 🟢 Change a subject's category clears non-matching values
 Implemented (counted blocking confirm; facts + tags survive; inbound links left

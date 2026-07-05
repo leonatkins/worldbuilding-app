@@ -21,8 +21,8 @@
  * - `created_at` on all tables; app-managed `updated_at` on editable ones.
  * - Ordering via `position double precision` (midpoint insertion).
  *
- * Deferred to their feature step: tags + subject_tags (step 7), templates
- * (step 13).
+ * Deferred to their feature step: tags + subject_tags (step 7). Templates
+ * arrived in step 13.
  *
  * AI hook point: none here — AI features (PRD §7) are not built in this phase.
  */
@@ -61,6 +61,9 @@ export const fieldType = pgEnum("field_type", [
 
 /** Where a relationship/backlink came from — a fact mention or a List/Link field. */
 export const relationshipOrigin = pgEnum("relationship_origin", ["fact", "field"]);
+
+/** Template kind — one category's fields, or a full world's category structure. */
+export const templateKind = pgEnum("template_kind", ["schema", "world"]);
 
 /* -------------------------------------------------------------------------- */
 /* Shared column builders (spec §2.1–2.2)                                     */
@@ -311,3 +314,26 @@ export const subjectTags = pgTable(
   },
   (t) => [primaryKey({ columns: [t.subjectId, t.tagId] })],
 );
+
+/* -------------------------------------------------------------------------- */
+/* Templates (step 13)                                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A user-authored private template (step 13). Built-in official templates are
+ * hardcoded TS constants (lib/templates/builtins.ts) and never live here — so
+ * there is no `is_official` flag. `content` is the frozen snapshot (design
+ * §4.5): category/field structure only, UUID-free, portable across worlds. Two
+ * kinds: a `schema` template (one category's fields) or a `world` template
+ * (full category structure, no subjects/facts/values). Names are NOT unique
+ * per owner (unlike tags) — the library disambiguates by kind/created_at.
+ */
+export const templates = pgTable("templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  accountId: accountId(),
+  name: text("name").notNull(),
+  kind: templateKind("kind").notNull(),
+  content: jsonb("content").notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});

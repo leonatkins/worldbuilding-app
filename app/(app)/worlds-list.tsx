@@ -25,6 +25,7 @@ import {
 } from "@/app/actions/worlds";
 import { randomWorldName } from "@/lib/world-names";
 import { MAX_WORLD_NAME_LENGTH } from "@/lib/worlds";
+import type { TemplateListItem } from "@/lib/templates/types";
 
 export type World = {
   id: string;
@@ -105,16 +106,18 @@ function sortWorlds(worlds: World[], sort: SortKey): World[] {
 export function WorldsList({
   worlds,
   deletedWorlds,
+  templates,
 }: {
   worlds: World[];
   deletedWorlds: DeletedWorld[];
+  templates: TemplateListItem[];
 }) {
   const sort = useSyncExternalStore(subscribeSort, readSort, () => DEFAULT_SORT);
   const sorted = useMemo(() => sortWorlds(worlds, sort), [worlds, sort]);
 
   return (
     <div className="space-y-6">
-      <CreateWorldForm />
+      <CreateWorldForm templates={templates} />
 
       {worlds.length === 0 ? (
         <EmptyState />
@@ -149,6 +152,15 @@ export function WorldsList({
       )}
 
       <RecentlyDeleted worlds={deletedWorlds} />
+
+      <div className="pt-2">
+        <Link
+          href="/templates"
+          className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-900 hover:underline dark:hover:text-neutral-100"
+        >
+          Browse templates ({templates.length})
+        </Link>
+      </div>
     </div>
   );
 }
@@ -237,12 +249,15 @@ function EmptyState() {
   );
 }
 
-function CreateWorldForm() {
+function CreateWorldForm({ templates }: { templates: TemplateListItem[] }) {
   const [state, formAction, pending] = useActionState<WorldResult | null, FormData>(
     async (_prev, formData) => createWorld(formData),
     null,
   );
   const inputRef = useRef<HTMLInputElement>(null);
+  const [startingPoint, setStartingPoint] = useState<"default" | "blank" | "template">("default");
+  const [templateId, setTemplateId] = useState<string>("");
+  const worldTemplates = templates.filter((t) => t.kind === "world");
 
   return (
     // noValidate: route empty/whitespace names through the styled server error
@@ -281,6 +296,56 @@ function CreateWorldForm() {
           {pending ? "Creating…" : "Create"}
         </button>
       </div>
+      <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-500">
+        <label className="flex items-center gap-1.5">
+          <input
+            type="radio"
+            name="startingPointRadio"
+            checked={startingPoint === "default"}
+            onChange={() => setStartingPoint("default")}
+          />
+          Default
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input
+            type="radio"
+            name="startingPointRadio"
+            checked={startingPoint === "blank"}
+            onChange={() => setStartingPoint("blank")}
+          />
+          Blank
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input
+            type="radio"
+            name="startingPointRadio"
+            checked={startingPoint === "template"}
+            onChange={() => setStartingPoint("template")}
+            disabled={worldTemplates.length === 0}
+          />
+          From template
+        </label>
+        {startingPoint === "template" && (
+          <select
+            aria-label="World template"
+            className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+          >
+            <option value="" disabled>
+              Pick a template
+            </option>
+            {worldTemplates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+                {t.builtin ? " · built-in" : ""}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      <input type="hidden" name="startingPoint" value={startingPoint} />
+      <input type="hidden" name="templateId" value={templateId} />
       {state?.error && (
         <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
       )}

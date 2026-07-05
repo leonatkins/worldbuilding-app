@@ -13,19 +13,36 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_CATEGORIES, validateName } from "@/lib/worlds";
+import {
+  applyWorldTemplate,
+} from "@/app/actions/templates";
+import {
+  parseSnapshot,
+} from "@/lib/templates/parse";
+import { BUILTIN_TEMPLATES } from "@/lib/templates/builtins";
 
 // Shape returned to client forms on failure. Success paths redirect/revalidate.
 export type WorldResult = { error: string };
 
 /**
- * Create a world and seed its default categories. Because door 1 can't wrap two
- * inserts in one transaction, we use undo-on-failure: if seeding the categories
- * fails, the just-created world is deleted so no half-seeded world remains
- * (step-5 spec §4). On success, redirect into the new world.
+ * Create a world and seed it per the chosen starting point (design §4.4):
+ * - `default`  — seed the five `DEFAULT_CATEGORIES` (no schema fields).
+ * - `blank`     — empty world, no categories.
+ * - `template`  — apply a world-template snapshot (built-in or private),
+ *                 unpacking categories + fields. Honors A3 stub creation.
+ *
+ * Because door 1 can't wrap multiple inserts in one transaction, we use
+ * undo-on-failure: if seeding fails, the just-created world is deleted so no
+ * half-seeded world remains (step-5 spec §4). Template apply carries its own
+ * longer undo chain (fields → stubs → categories). On success, redirect into
+ * the new world.
  */
 export async function createWorld(formData: FormData): Promise<WorldResult> {
   const validated = validateName(String(formData.get("name") ?? ""));
   if ("error" in validated) return validated;
+
+  const startingPoint = String(formData.get("startingPoint") ?? "default");
+  const templateId = String(formData.get("templateId") ?? "");
 
   const supabase = await createClient();
   // Defense in depth — RLS is the real guard, but confirm a session exists.
@@ -45,6 +62,28 @@ export async function createWorld(formData: FormData): Promise<WorldResult> {
     return { error: worldError?.message ?? "Could not create world." };
   }
 
+  if (startingPoint === "blank") {
+    revalidatePath("/");
+    redirect(`/worlds/${world.id}`);
+  }
+
+  if (startingPoint === "template" && templateId) {
+    const snapshot = await resolveTemplateSnapshot(supabase, templateId);
+    if ("error" in snapshot) {
+      await supabase.from("worlds").delete().eq("id", world.id);
+      return { error: snapshot.error };
+    }
+    const result = await applyWorldTemplate(snapshot.value, world.id);
+    if (result.error) {
+      // applyWorldTemplate already undid its own inserts; drop the empty world.
+      await supabase.from("worlds").delete().eq("id", world.id);
+      return { error: result.error };
+    }
+    revalidatePath("/");
+    redirect(`/worlds/${world.id}`);
+  }
+
+  // default: seed DEFAULT_CATEGORIES (no schema fields).
   const { error: seedError } = await supabase.from("categories").insert(
     DEFAULT_CATEGORIES.map((c) => ({
       world_id: world.id,
@@ -62,6 +101,27 @@ export async function createWorld(formData: FormData): Promise<WorldResult> {
 
   revalidatePath("/");
   redirect(`/worlds/${world.id}`);
+}
+
+/** Resolve a template id (built-in `builtin:<key>` or a private DB uuid) to its snapshot. */
+async function resolveTemplateSnapshot(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  templateId: string,
+): Promise<{ value: import("@/lib/templates/types").Snapshot } | { error: string }> {
+  if (templateId.startsWith("builtin:")) {
+    const builtin = BUILTIN_TEMPLATES.find((t) => t.id === templateId);
+    if (!builtin?.content) return { error: "Unknown built-in template." };
+    return { value: builtin.content };
+  }
+  const { data } = await supabase
+    .from("templates")
+    .select("content")
+    .eq("id", templateId)
+    .maybeSingle();
+  if (!data) return { error: "Template not found." };
+  const parsed = parseSnapshot(data.content);
+  if ("error" in parsed) return { error: parsed.error };
+  return { value: parsed.value };
 }
 
 /** Rename a world. RLS scopes the update to the owner. */

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { activeOnly } from "@/lib/db/soft-delete";
 import { Tombstone } from "@/app/(app)/_components/tombstone";
+import { SaveAsTemplateButton } from "@/app/(app)/_components/save-as-template";
 import { SchemaEditor, type SchemaField } from "../schema-editor";
 
 type Props = { params: Promise<{ worldId: string; categoryId: string }> };
@@ -81,6 +82,10 @@ export default async function CategorySchemaPage({ params }: Props) {
         fields={fields}
         categories={categories}
       />
+
+      <div className="pt-2">
+        <SaveAsTemplateButton kind="schema" sourceId={categoryId} defaultName={category.name} />
+      </div>
     </main>
   );
 }

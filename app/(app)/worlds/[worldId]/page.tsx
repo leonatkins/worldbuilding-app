@@ -10,6 +10,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { activeOnly, deletedOnly } from "@/lib/db/soft-delete";
 import { Tombstone } from "@/app/(app)/_components/tombstone";
+import { SaveAsTemplateButton } from "@/app/(app)/_components/save-as-template";
 import {
   CategoryManager,
   type Category,
@@ -108,6 +109,10 @@ export default async function WorldPage({ params }: WorldPageProps) {
       />
 
       <TagManager worldId={worldId} tags={worldTags} />
+
+      <div className="pt-2">
+        <SaveAsTemplateButton kind="world" sourceId={worldId} defaultName={world.name} />
+      </div>
     </main>
   );
 }
