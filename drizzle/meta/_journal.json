@@ -64,6 +64,13 @@
       "when": 1783206730745,
       "tag": "0008_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783233127068,
+      "tag": "0009_striped_justice",
+      "breakpoints": true
     }
   ]
 }

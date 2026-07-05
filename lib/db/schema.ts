@@ -22,7 +22,8 @@
  * - Ordering via `position double precision` (midpoint insertion).
  *
  * Deferred to their feature step: tags + subject_tags (step 7). Templates
- * arrived in step 13; `onboarding_seen_at` on accounts in step 14.
+ * arrived in step 13; `onboarding_seen_at` on accounts in step 14;
+ * `subject_views` (view history) in step 15a.
  *
  * AI hook point: none here — AI features (PRD §7) are not built in this phase.
  */
@@ -341,3 +342,28 @@ export const templates = pgTable("templates", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+/* -------------------------------------------------------------------------- */
+/* View history (step 15a)                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Which subjects an account has recently opened — powers "Recently viewed" on
+ * Home and each world's Overview (ADR 0012). A *collapsed* record: one row per
+ * (account, subject), `last_viewed_at` upserted on each open — not an append-only
+ * event log, since we only ever want the most-recent open per subject. The
+ * composite PK is the upsert conflict target. Both FKs cascade, so the 30-day
+ * hard purge (ADR 0005) auto-removes rows for purged subjects; soft-deleted
+ * subjects are filtered out on read (`activeOnly`), never surfaced here.
+ */
+export const subjectViews = pgTable(
+  "subject_views",
+  {
+    accountId: accountId(),
+    subjectId: uuid("subject_id")
+      .notNull()
+      .references(() => subjects.id, { onDelete: "cascade" }),
+    lastViewedAt: timestamp("last_viewed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.subjectId] })],
+);

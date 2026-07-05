@@ -13,6 +13,7 @@ import { mentionedIds } from "@/lib/facts";
 import { resolveMentions, type ResolvedMention } from "@/lib/mentions";
 import { resolveInverseLabel } from "@/lib/schema-fields";
 import { Tombstone } from "@/app/(app)/_components/tombstone";
+import { RecordView } from "./record-view";
 import { SubjectPage, type FieldValueState } from "./subject-page";
 import type { SchemaField } from "../../categories/[categoryId]/schema-editor";
 
@@ -300,6 +301,7 @@ export default async function SubjectRoute({ params }: Props) {
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-12">
+      <RecordView subjectId={subject.id} />
       <Link
         href={`/worlds/${worldId}/categories/${subject.category_id}`}
         className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-800 hover:underline dark:hover:text-neutral-200"
