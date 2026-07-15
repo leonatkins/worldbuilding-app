@@ -9,7 +9,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
 import { WorldSwitcher } from "./world-switcher";
-import { CreateMenu } from "./create-menu";
 import { GuidePanel } from "./_components/guide-panel";
 
 export default async function AppLayout({
@@ -52,7 +51,6 @@ export default async function AppLayout({
           <WorldSwitcher worlds={worlds} />
         </div>
         <div className="flex shrink-0 items-center gap-3 text-sm text-neutral-500">
-          <CreateMenu />
           <GuidePanel autoOpen={autoOpenGuide} />
           <span className="hidden sm:inline">{user.email}</span>
           <form action={signOut} className="shrink-0">

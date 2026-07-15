@@ -156,7 +156,7 @@ function CreateCategoryForm({
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // The header "+ → New category" routes here with ?create=category; focus the add input.
+  // Focus the add input when arriving with ?create=category.
   const searchParams = useSearchParams();
   useEffect(() => {
     if (searchParams.get("create") === "category") {

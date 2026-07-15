@@ -297,7 +297,7 @@ function CreateWorldForm({ templates }: { templates: TemplateListItem[] }) {
   const [templateId, setTemplateId] = useState<string>("");
   const worldTemplates = templates.filter((t) => t.kind === "world");
 
-  // The header "+ → New world" routes here with ?create=world; focus + reveal the
+  // The world switcher's "New world" routes here with ?create=world; focus + reveal the
   // name input so the action actually does something (previously a no-op link).
   const searchParams = useSearchParams();
   useEffect(() => {

@@ -139,7 +139,7 @@ function CreateSubjectForm({
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // The header "+ → New subject" routes here with ?create=subject; focus the add input.
+  // Focus the add input when arriving with ?create=subject.
   const searchParams = useSearchParams();
   useEffect(() => {
     if (searchParams.get("create") === "subject") {
