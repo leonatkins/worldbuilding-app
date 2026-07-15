@@ -111,10 +111,15 @@ metrics dashboard in feel.
 _Avoid_: Dashboard, overview (that's the per-world hub), landing page
 
 **Overview**:
-A single world's landing hub — its stats, its own recently-viewed/edited subjects,
-and the primary "start here" actions. The per-world analogue of Home; one of the
-three in-world surfaces (Overview, Browse, Manage).
-_Avoid_: World home (ambiguous), dashboard, summary
+A single world's landing surface — the page you open to on entering a world. A
+journal/ledger-style *index* or front page: the world's own recently-viewed/edited
+subjects and its categories laid out as an index, plus the primary "start here"
+actions. The per-world analogue of Home, and like Home deliberately *not* a metrics
+dashboard. There is **no in-world tab bar** — Browse and the category/schema/tag
+management surfaces are reached by in-page links and the ⌘K command palette, not
+tabs. (Name provisional: may become "Index" / "Front page" once its content
+emphasis — recent-entries-first vs categories-index-first — is fixed.)
+_Avoid_: Dashboard, world hub, stats screen, tab, summary
 
 **Browse**:
 The in-world surface for finding subjects directly — a flat, filterable list of
@@ -124,6 +129,15 @@ surface that runs a query is the same surface that lists everything. A category'
 own **detail page** still exists as a secondary drill-in (its members + schema
 editor), but is no longer the way you *navigate* to subjects.
 _Avoid_: Subjects list (Browse is world-wide), folder, directory
+
+**Spyglass**:
+The world's search-and-jump instrument — a persistent, emphasized element (the app's
+one recurring "instrument") for spotting any subject by name, fact text, or field
+value and going straight to it. The on-vibe replacement for both a generic search box
+*and* a ⌘K command palette (both rejected as SaaS chrome): a quiet lookup framed as
+raising a spyglass, not a command overlay. Implementation is the elevated/renamed
+`GlobalSearchBar`; scope matches **Search**.
+_Avoid_: Command palette, ⌘K, quick-switcher, omnibox
 
 **View history**:
 The account's record of which subjects it has recently opened — one entry per

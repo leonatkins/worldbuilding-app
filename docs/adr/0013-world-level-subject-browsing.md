@@ -1,6 +1,13 @@
 # World-level Browse is the primary path to subjects; the category page is demoted, not removed
 
-**Status:** accepted
+**Status:** accepted — tab/back-link framing superseded by [ADR 0014](0014-journal-navigation-no-tabs-no-palette.md)
+
+> **Superseding note (2026-07-14):** the "in-world tab structure (Overview / Browse /
+> Manage)" this ADR assumes was **cut** (ADR 0014 — no tabs, no command palette). The
+> **core of this ADR still holds**: Browse is the primary path to subjects and the
+> category page is kept-but-demoted. What changed: navigation is a journal front page +
+> in-page links + the Spyglass instead of tabs, and the subject page's "← category"
+> back-link referenced below **does not exist and is intentionally not added** (flat IA).
 
 Until step 15, reaching a subject meant navigating *into* a category: world page →
 click a category → that category's page lists its subjects → click a subject. Step

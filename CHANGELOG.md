@@ -7,6 +7,21 @@ All notable changes to this project are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **Templates (step 13).** Save a category's schema or a whole world as a reusable
+  template and apply it elsewhere; a template library to browse and manage. Refs are
+  stored portably (by local key, not UUID) so an applied template stubs missing targets
+  rather than breaking (ADRs 0009–0011).
+- **Onboarding guide panel (step 14).** A collapsible guide explaining worlds, subjects,
+  facts, @mentions, tags, and the power-user features (schema, `!`, templates).
+- **Home + view history (step 15a).** The account landing (`/`) is now a journal-style
+  **Home**: recently viewed subjects (a new `subject_views` table, one collapsed row per
+  subject — ADR 0012) and recently edited subjects across all worlds, the worlds list,
+  and light editorial (a tip, what's new). Hidden gracefully for brand-new accounts.
+- **UI + create-flow polish (step 16, first slice).** A context-aware `+` create menu
+  that navigates and focuses the destination's inline form; styled radio dots for the
+  starting-point control; the app's first custom icon (an outline die); a guide panel
+  that collapses advanced sections and slides in. *(Note: the `+` menu is slated for
+  retirement in step 15b — see `docs/step-15b-spec.md`.)*
 - **World search & filtering (step 12).** A persistent search bar in a new
   per-world header searches subject names, fact text, and schema field values
   (matched on both the field name and its value) across the whole world, with a
