@@ -13,6 +13,7 @@ import { activeOnly } from "@/lib/db/soft-delete";
 import { searchWorld } from "@/app/actions/search";
 import { MIN_QUERY_LENGTH } from "@/lib/search";
 import { BrowseFilters, type FilterFacet } from "./browse-filters";
+import { TagManager, type WorldTag } from "../tag-manager";
 
 type SearchPageProps = {
   params: Promise<{ worldId: string }>;
@@ -69,6 +70,13 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
     id: t.id,
     name: `#${t.name}`,
     count: tagCounts.get(t.id) ?? 0,
+  }));
+  // Tag management (rename/delete, world-level) lives here now — the tag filter is
+  // the tag's home (step 15b, ADR 0014); behind a quiet disclosure so Browse stays
+  // about finding subjects.
+  const worldTags: WorldTag[] = ((tagRows ?? []) as { id: string; name: string }[]).map((t) => ({
+    ...t,
+    subjectCount: tagCounts.get(t.id) ?? 0,
   }));
 
   const { results, total } = await searchWorld(worldId, { query, categoryIds, tagIds });
@@ -133,6 +141,17 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
           </ul>
         )}
       </section>
+
+      {worldTags.length > 0 && (
+        <details className="border-t border-neutral-200 pt-4 dark:border-neutral-800">
+          <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-neutral-500 transition hover:text-neutral-800 dark:hover:text-neutral-200">
+            Manage tags
+          </summary>
+          <div className="pt-4">
+            <TagManager worldId={worldId} tags={worldTags} />
+          </div>
+        </details>
+      )}
     </main>
   );
 }
