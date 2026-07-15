@@ -15,7 +15,7 @@ export type FilterFacet = { id: string; name: string; count?: number };
 
 const DEBOUNCE_MS = 300;
 
-export function SearchFilters({
+export function BrowseFilters({
   worldId,
   query,
   categoryIds,
@@ -50,7 +50,7 @@ export function SearchFilters({
     for (const t of next.tagIds) params.append("tag", t);
     const qs = params.toString();
     lastPushed.current = next.q;
-    router.replace(`/worlds/${worldId}/search${qs ? `?${qs}` : ""}`);
+    router.replace(`/worlds/${worldId}/browse${qs ? `?${qs}` : ""}`);
   }
 
   // Debounced query push.

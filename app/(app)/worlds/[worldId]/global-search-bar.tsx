@@ -56,16 +56,16 @@ export function GlobalSearchBar({ worldId }: { worldId: string }) {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  function goToSearch() {
+  function goToBrowse() {
     const q = query.trim();
     setOpen(false);
-    router.push(`/worlds/${worldId}/search${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+    router.push(`/worlds/${worldId}/browse${q ? `?q=${encodeURIComponent(q)}` : ""}`);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       e.preventDefault();
-      goToSearch();
+      goToBrowse();
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -127,7 +127,7 @@ export function GlobalSearchBar({ worldId }: { worldId: string }) {
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={goToSearch}
+            onClick={goToBrowse}
             className="block w-full border-t border-neutral-200 px-3 py-2 text-left text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
           >
             See all {total} {total === 1 ? "result" : "results"} →

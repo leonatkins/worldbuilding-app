@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { activeOnly } from "@/lib/db/soft-delete";
 import { searchWorld } from "@/app/actions/search";
 import { MIN_QUERY_LENGTH } from "@/lib/search";
-import { SearchFilters, type FilterFacet } from "./search-filters";
+import { BrowseFilters, type FilterFacet } from "./browse-filters";
 
 type SearchPageProps = {
   params: Promise<{ worldId: string }>;
@@ -85,10 +85,10 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
         >
           ← {world.name}
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Browse</h1>
       </div>
 
-      <SearchFilters
+      <BrowseFilters
         worldId={worldId}
         query={query}
         categoryIds={categoryIds}

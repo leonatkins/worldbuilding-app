@@ -111,7 +111,7 @@ function TagRow({ worldId, tag }: { worldId: string; tag: WorldTag }) {
       </span>
       <div className="flex shrink-0 items-center gap-1 text-sm text-neutral-500">
         <Link
-          href={`/worlds/${worldId}/search?tag=${tag.id}`}
+          href={`/worlds/${worldId}/browse?tag=${tag.id}`}
           className="rounded-md px-2 py-1 transition hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
         >
           Browse
