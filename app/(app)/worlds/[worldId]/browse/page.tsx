@@ -13,7 +13,9 @@ import { activeOnly } from "@/lib/db/soft-delete";
 import { searchWorld } from "@/app/actions/search";
 import { MIN_QUERY_LENGTH } from "@/lib/search";
 import { BrowseFilters, type FilterFacet } from "./browse-filters";
+import { BrowseResults } from "./browse-results";
 import { TagManager, type WorldTag } from "../tag-manager";
+import { NewSubjectForm, type CategoryOption } from "../new-subject-form";
 
 type SearchPageProps = {
   params: Promise<{ worldId: string }>;
@@ -66,6 +68,11 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
   const categories: FilterFacet[] = (
     (catRows ?? []) as { id: string; name: string; icon: string | null }[]
   ).map((c) => ({ id: c.id, name: `${c.icon ? `${c.icon} ` : ""}${c.name}` }));
+  // Raw category options for the inline new-subject picker (needs the bare icon,
+  // not the display-prefixed facet name).
+  const categoryOptions: CategoryOption[] = (
+    (catRows ?? []) as { id: string; name: string; icon: string | null }[]
+  ).map((c) => ({ id: c.id, name: c.name, icon: c.icon }));
   const tags: FilterFacet[] = ((tagRows ?? []) as { id: string; name: string }[]).map((t) => ({
     id: t.id,
     name: `#${t.name}`,
@@ -105,6 +112,12 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
         tags={tags}
       />
 
+      <NewSubjectForm
+        worldId={worldId}
+        categories={categoryOptions}
+        defaultCategoryId={categoryIds.length === 1 ? categoryIds[0] : undefined}
+      />
+
       <section className="space-y-3">
         <p className="text-sm text-neutral-500">
           {total === 0
@@ -114,32 +127,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
               : `${total} ${total === 1 ? "subject" : "subjects"}${activeSearch ? " matched" : ""}.`}
         </p>
 
-        {results.length > 0 && (
-          <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
-            {results.map((r) => (
-              <li key={r.id}>
-                <Link
-                  href={`/worlds/${worldId}/subjects/${r.id}`}
-                  className="block px-4 py-3 transition hover:bg-neutral-50 dark:hover:bg-neutral-900"
-                >
-                  <span className="flex items-baseline gap-2">
-                    <span className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                      {r.name}
-                    </span>
-                    {r.categoryName && (
-                      <span className="shrink-0 text-xs text-neutral-400">{r.categoryName}</span>
-                    )}
-                  </span>
-                  {r.snippet && (
-                    <span className="mt-0.5 block truncate text-xs text-neutral-500">
-                      {r.snippet}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <BrowseResults worldId={worldId} results={results} />
       </section>
 
       {worldTags.length > 0 && (
