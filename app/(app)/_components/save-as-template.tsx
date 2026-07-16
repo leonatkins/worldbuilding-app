@@ -14,7 +14,7 @@ import {
 import { MAX_NAME_LENGTH } from "@/lib/validation";
 
 const inputClass =
-  "min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100";
+  "min-w-0 flex-1 border border-rule bg-surface-raised px-3 py-2 text-sm outline-none transition-colors duration-150 ease-[var(--ease-out)] placeholder:italic placeholder:text-ink-faint focus:border-accent";
 
 export function SaveAsTemplateButton({
   kind,
@@ -55,7 +55,7 @@ export function SaveAsTemplateButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-900 hover:underline dark:hover:text-neutral-100"
+        className="text-sm text-ink-muted underline-offset-4 transition-colors duration-150 ease-[var(--ease-out)] hover:text-ink hover:underline"
       >
         Save as template
       </button>
@@ -78,19 +78,19 @@ export function SaveAsTemplateButton({
           type="button"
           onClick={submit}
           disabled={pending}
-          className="rounded-md bg-neutral-900 px-4 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className="bg-ink px-4 text-sm font-medium text-surface transition-[color,background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-ink-muted active:scale-[0.97] disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save"}
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded-md px-3 text-sm text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+          className="px-3 text-sm text-ink-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-surface-raised hover:text-ink active:scale-[0.97]"
         >
           Cancel
         </button>
       </div>
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 }

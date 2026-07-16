@@ -18,7 +18,7 @@ export default async function WorldLayout({
 
   return (
     <>
-      <div className="border-b border-neutral-200 px-6 py-2.5 dark:border-neutral-800">
+      <div className="border-b border-rule px-6 py-2.5">
         <div className="mx-auto max-w-2xl">
           <GlobalSearchBar worldId={worldId} />
         </div>

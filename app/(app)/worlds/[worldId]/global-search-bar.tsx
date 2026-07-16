@@ -1,11 +1,18 @@
 "use client";
 
 /**
- * Persistent world search bar (step 12). A debounced typeahead that previews the
+ * The Spyglass (steps 12, 15b, 16a) — the world's search-and-jump instrument and
+ * the app's one recurring "instrument". A debounced typeahead that previews the
  * top matches inline (same debounce/server-round-trip idiom as the @mention
  * search, since the search space is a whole world), with a "See all results"
- * item and Enter both routing to the full /search page for filters. Below the
- * 2-char minimum it stays quiet — a single letter matches almost everything.
+ * item and Enter both routing to /browse for filters. Below the 2-char minimum
+ * it stays quiet — a single letter matches almost everything.
+ *
+ * Deliberately NOT a ⌘K command palette (ADR 0014).
+ *
+ * Motion: the dropdown does not animate, on purpose. This is the core loop —
+ * seen 100s of times a day — and at that frequency animation reads as latency
+ * (cf. Raycast, which has no open/close animation for the same reason).
  */
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -75,6 +82,7 @@ export function GlobalSearchBar({ worldId }: { worldId: string }) {
 
   return (
     <div ref={containerRef} className="relative">
+      <SpyglassGlyph />
       <input
         type="search"
         value={query}
@@ -84,17 +92,17 @@ export function GlobalSearchBar({ worldId }: { worldId: string }) {
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
-        placeholder="Search subjects, facts, fields…"
+        placeholder="Spot a subject, a fact, a field…"
         aria-label="Search this world"
-        className="w-full rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm outline-none transition focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100"
+        className="w-full border border-rule bg-surface-raised py-1.5 pl-9 pr-3 text-sm shadow-stamp outline-none transition-colors duration-150 ease-[var(--ease-out)] placeholder:text-ink-faint placeholder:italic focus:border-accent"
       />
 
       {showDropdown && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-md border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden border border-rule bg-surface-raised shadow-stamp-lg">
           {results.length === 0 ? (
-            <p className="px-3 py-2.5 text-sm text-neutral-500">No matches.</p>
+            <p className="px-3 py-2.5 text-sm text-system">No matches.</p>
           ) : (
-            <ul className="max-h-80 divide-y divide-neutral-100 overflow-y-auto dark:divide-neutral-800">
+            <ul className="max-h-80 divide-y divide-rule overflow-y-auto">
               {results.map((r) => (
                 <li key={r.id}>
                   <button
@@ -104,18 +112,16 @@ export function GlobalSearchBar({ worldId }: { worldId: string }) {
                       setOpen(false);
                       router.push(`/worlds/${worldId}/subjects/${r.id}`);
                     }}
-                    className="block w-full px-3 py-2 text-left transition hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                    className="block w-full px-3 py-2 text-left transition-colors duration-150 ease-[var(--ease-out)] hover:bg-accent-soft"
                   >
                     <span className="flex items-baseline gap-2">
-                      <span className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                        {r.name}
-                      </span>
+                      <span className="truncate text-sm font-medium text-ink">{r.name}</span>
                       {r.categoryName && (
-                        <span className="shrink-0 text-xs text-neutral-400">{r.categoryName}</span>
+                        <span className="shrink-0 text-xs text-ink-muted">{r.categoryName}</span>
                       )}
                     </span>
                     {r.snippet && (
-                      <span className="mt-0.5 block truncate text-xs text-neutral-500">
+                      <span className="mt-0.5 block truncate text-xs text-ink-muted">
                         {r.snippet}
                       </span>
                     )}
@@ -128,12 +134,36 @@ export function GlobalSearchBar({ worldId }: { worldId: string }) {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={goToBrowse}
-            className="block w-full border-t border-neutral-200 px-3 py-2 text-left text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            className="block w-full border-t border-rule px-3 py-2 text-left text-sm font-medium text-ink-muted transition-colors duration-150 ease-[var(--ease-out)] hover:bg-accent-soft hover:text-ink"
           >
             See all {total} {total === 1 ? "result" : "results"} →
           </button>
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * A spyglass — a tapered tube with an eyepiece ring, not a magnifying loupe. The
+ * loupe is the universal "generic search box" signifier, which is precisely the
+ * SaaS register ADR 0014 rejects; this names the instrument instead.
+ */
+function SpyglassGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted"
+    >
+      {/* tube, tapering from eyepiece (lower-left) to objective (upper-right) */}
+      <path d="M4.6 17.6 L15.9 4.9 L19.2 8.2 L6.6 19.5 Z" />
+      {/* eyepiece ring */}
+      <line x1="8.4" y1="12.6" x2="11.6" y2="15.8" />
+    </svg>
   );
 }

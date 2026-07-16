@@ -53,10 +53,10 @@ export function WorldSwitcher({ worlds }: { worlds: SwitcherWorld[] }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex max-w-[12rem] items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800"
+        className="flex max-w-[12rem] items-center gap-1.5 px-2 py-1 text-sm font-medium text-ink transition-[color,background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-surface-raised active:scale-[0.97]"
       >
         <span className="truncate">{active?.name ?? "World"}</span>
-        <span aria-hidden className="text-xs text-neutral-400">
+        <span aria-hidden className="text-xs text-ink-faint">
           ▾
         </span>
       </button>
@@ -64,7 +64,8 @@ export function WorldSwitcher({ worlds }: { worlds: SwitcherWorld[] }) {
       {open && (
         <div
           role="menu"
-          className="absolute left-0 z-20 mt-1 w-60 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-800 dark:bg-neutral-900"
+          // origin-top-left: a popover scales from its trigger, never from centre.
+          className="absolute left-0 z-20 mt-1 w-60 origin-top-left overflow-hidden border border-rule bg-surface-raised py-1 shadow-stamp-lg"
         >
           <ul className="max-h-72 overflow-y-auto">
             {worlds.map((world) => (
@@ -73,15 +74,13 @@ export function WorldSwitcher({ worlds }: { worlds: SwitcherWorld[] }) {
                   href={`/worlds/${world.id}`}
                   role="menuitem"
                   onClick={() => setOpen(false)}
-                  className={`flex items-center justify-between gap-2 px-3 py-2 text-sm transition hover:bg-neutral-100 dark:hover:bg-neutral-800 ${
-                    world.id === activeId
-                      ? "font-medium text-neutral-900 dark:text-neutral-100"
-                      : "text-neutral-600 dark:text-neutral-400"
+                  className={`flex items-center justify-between gap-2 px-3 py-2 text-sm transition-colors duration-150 ease-[var(--ease-out)] hover:bg-accent-soft ${
+                    world.id === activeId ? "font-medium text-ink" : "text-ink-muted"
                   }`}
                 >
                   <span className="truncate">{world.name}</span>
                   {world.id === activeId && (
-                    <span aria-hidden className="text-xs text-neutral-400">
+                    <span aria-hidden className="text-xs text-accent">
                       ✓
                     </span>
                   )}
@@ -89,12 +88,12 @@ export function WorldSwitcher({ worlds }: { worlds: SwitcherWorld[] }) {
               </li>
             ))}
           </ul>
-          <div className="my-1 h-px bg-neutral-200 dark:bg-neutral-800" />
+          <div className="my-1 h-px bg-rule" />
           <Link
             href="/?create=world"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2 text-sm text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+            className="block px-3 py-2 text-sm text-ink-muted transition-colors duration-150 ease-[var(--ease-out)] hover:bg-accent-soft hover:text-ink"
           >
             + New world
           </Link>
@@ -102,7 +101,7 @@ export function WorldSwitcher({ worlds }: { worlds: SwitcherWorld[] }) {
             href="/"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2 text-sm text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+            className="block px-3 py-2 text-sm text-ink-muted transition-colors duration-150 ease-[var(--ease-out)] hover:bg-accent-soft hover:text-ink"
           >
             Open all worlds
           </Link>

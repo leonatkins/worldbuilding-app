@@ -62,13 +62,13 @@ export function NewSubjectForm({
           maxLength={MAX_NAME_LENGTH}
           placeholder="Add a subject"
           aria-label="Subject name"
-          className="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100"
+          className="min-w-0 flex-1 border border-rule bg-surface-raised px-3 py-2 text-sm outline-none transition-colors duration-150 ease-[var(--ease-out)] placeholder:italic placeholder:text-ink-faint focus:border-accent"
         />
         <select
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
           aria-label="Category"
-          className="rounded-md border border-neutral-300 bg-white px-2 py-2 text-sm outline-none transition focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:border-neutral-100"
+          className="border border-rule bg-surface-raised px-2 py-2 text-sm outline-none transition-colors duration-150 ease-[var(--ease-out)] focus:border-accent"
         >
           <option value="">Category…</option>
           {categories.map((c) => (
@@ -81,12 +81,12 @@ export function NewSubjectForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-neutral-900 px-4 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className="bg-ink px-4 text-sm font-medium text-surface transition-[color,background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-ink-muted active:scale-[0.97] disabled:opacity-50"
         >
           {pending ? "Adding…" : "Add"}
         </button>
       </div>
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </form>
   );
 }

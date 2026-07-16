@@ -121,7 +121,7 @@ export default async function WorldPage({ params }: WorldPageProps) {
       <div className="space-y-1">
         <Link
           href="/"
-          className="text-sm text-neutral-500 underline-offset-4 transition hover:text-neutral-800 hover:underline dark:hover:text-neutral-200"
+          className="text-sm text-ink-muted underline-offset-4 transition-colors duration-150 ease-[var(--ease-out)] hover:text-ink hover:underline"
         >
           ← All worlds
         </Link>

@@ -74,14 +74,14 @@ export function Tombstone({ kind, name, worldId, categoryId, subjectId }: Props)
       {/* Mascot slot — replaced by the skeleton illustration in the visual-polish pass. */}
       <div
         aria-hidden
-        className="flex h-28 w-28 items-center justify-center rounded-full bg-neutral-100 text-5xl dark:bg-neutral-800"
+        className="flex h-28 w-28 items-center justify-center border border-rule bg-surface-raised text-5xl"
       >
         🦴
       </div>
 
       <div className="space-y-2">
         <h1 className="text-xl font-semibold tracking-tight">Nothing here right now</h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-ink-muted">
           {copy.lead(name)} Restore it to bring this page — and everything inside it — back.
           Items in Recently Deleted are removed for good after 30 days.
         </p>
@@ -92,11 +92,11 @@ export function Tombstone({ kind, name, worldId, categoryId, subjectId }: Props)
           type="button"
           onClick={restore}
           disabled={pending}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className="bg-ink px-4 py-2 text-sm font-medium text-surface transition-[color,background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-ink-muted active:scale-[0.97] disabled:opacity-50"
         >
           {pending ? "Restoring…" : copy.restore}
         </button>
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
       </div>
     </main>
   );

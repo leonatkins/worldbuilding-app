@@ -26,11 +26,11 @@ export function WorldCategories({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Categories</h2>
+        <h2 className="label-structural font-medium">Categories</h2>
         <button
           type="button"
           onClick={() => setEditing((v) => !v)}
-          className="rounded-md px-2 py-1 text-sm text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+          className="px-2 py-1 text-sm text-ink-muted transition-[color,background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-surface-raised hover:text-ink active:scale-[0.97]"
         >
           {editing ? "Done" : "Edit"}
         </button>
@@ -43,24 +43,22 @@ export function WorldCategories({
           deletedCategories={deletedCategories}
         />
       ) : categories.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-neutral-300 px-6 py-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
+        <p className="border border-dashed border-rule px-6 py-8 text-center text-sm text-system">
           No categories yet. Click Edit to add one.
         </p>
       ) : (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+        <ul className="divide-y divide-rule overflow-hidden border border-rule">
           {categories.map((c) => (
             <li key={c.id}>
               <Link
                 href={`/worlds/${worldId}/browse?category=${c.id}`}
-                className="flex items-center justify-between gap-3 px-4 py-2.5 transition hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors duration-150 ease-[var(--ease-out)] hover:bg-accent-soft"
               >
                 <span className="flex min-w-0 items-center gap-2">
                   {c.icon && <span aria-hidden>{c.icon}</span>}
-                  <span className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                    {c.name}
-                  </span>
+                  <span className="truncate text-sm font-medium text-ink">{c.name}</span>
                 </span>
-                <span className="shrink-0 text-xs text-neutral-400">{c.subjectCount}</span>
+                <span className="shrink-0 text-xs text-ink-muted">{c.subjectCount}</span>
               </Link>
             </li>
           ))}
