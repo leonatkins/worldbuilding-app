@@ -47,7 +47,7 @@ export function WorldCategories({
           No categories yet. Click Edit to add one.
         </p>
       ) : (
-        <ul className="divide-y divide-rule overflow-hidden border border-rule">
+        <ul className="divide-y divide-rule overflow-hidden border border-rule bg-surface-raised">
           {categories.map((c) => (
             <li key={c.id}>
               <Link

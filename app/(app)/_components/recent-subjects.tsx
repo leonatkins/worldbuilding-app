@@ -24,7 +24,7 @@ export function RecentSubjects({
   if (subjects.length === 0) return null;
 
   return (
-    <section className="space-y-2 border border-rule p-4">
+    <section className="space-y-2 border border-rule bg-surface-raised p-4">
       <h2 className="label-structural font-medium">{heading}</h2>
       <ul className="flex flex-col gap-1">
         {subjects.map((s) => (

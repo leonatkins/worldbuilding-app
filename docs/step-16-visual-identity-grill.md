@@ -229,6 +229,22 @@ hover**, so those Rename/Delete controls are permanently visible or unreachable.
 `@media (hover: hover) and (pointer: fine)` gating + a touch fallback. A real mobile
 defect hiding inside an aesthetic rule.
 
+### Sweep rule — bordered containers MUST be opaque
+**Found live during the 16a Overview sweep.** Many panels were `border border-rule`
+with *no* background: that was invisible before, because the body was flat white and a
+transparent panel on white looks white. **The grid texture breaks that** — a transparent
+panel now shows the graph paper straight through it, which reads as a missing background.
+
+**Rule: any bordered container gets `bg-surface-raised`.** Panels are sheets laid *on*
+the graph paper, not windows onto it. This also delivers the style guide's *"sections are
+separated with thin hairline borders **and a subtle surface-color change**"* — the
+surface change was simply absent before.
+
+Exception: dashed **empty states** stay transparent on purpose — bare paper is the point.
+
+Detection for the remaining files:
+`grep -rnoE 'className="[^"]*border border-rule[^"]*"' app --include=*.tsx | grep -v "bg-"`
+
 ### Palette anchors (starting values, tune in situ)
 | | Light | Dark |
 |---|---|---|
