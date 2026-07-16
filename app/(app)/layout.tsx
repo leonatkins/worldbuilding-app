@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
 import { WorldSwitcher } from "./world-switcher";
 import { GuidePanel } from "./_components/guide-panel";
+import { ThemeToggle } from "./_components/theme-toggle";
 
 export default async function AppLayout({
   children,
@@ -51,6 +52,7 @@ export default async function AppLayout({
           <WorldSwitcher worlds={worlds} />
         </div>
         <div className="flex shrink-0 items-center gap-3 text-sm text-neutral-500">
+          <ThemeToggle />
           <GuidePanel autoOpen={autoOpenGuide} />
           <span className="hidden sm:inline">{user.email}</span>
           <form action={signOut} className="shrink-0">

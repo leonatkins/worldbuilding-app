@@ -1,19 +1,162 @@
 @import "tailwindcss";
 
+/**
+ * Step 16a — the token layer (papery-cartographer).
+ *
+ * Components must never name a colour. They name a ROLE (`bg-surface`,
+ * `text-ink`, `border-rule`) and the theme decides the value. That is what lets
+ * `dark:` variants disappear during the sweep: the token already knows its dark
+ * value.
+ *
+ * Grill: docs/step-16-visual-identity-grill.md · Colour model: ADR 0015.
+ */
+
+/* -------------------------------------------------------------------------
+ * Theme variant
+ *
+ * Re-points Tailwind's `dark:` from `prefers-color-scheme` to our `data-theme`
+ * attribute. This is load-bearing during the incremental sweep: every un-swept
+ * file's existing `dark:` classes immediately start obeying the theme toggle,
+ * so the app is never half-broken mid-migration.
+ * ---------------------------------------------------------------------- */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* -------------------------------------------------------------------------
+ * Palette. Warm parchment / warm ink — never pure black or white, never a cool
+ * grey. Dark is the same palette inverted, not a redesign (style guide §5).
+ * ---------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Tells the browser which theme to render native UI in — scrollbars, form
+   * controls, the `<input type="color">` swatch. Without it these stay light in
+   * dark mode and look broken. */
+  color-scheme: light;
+
+  --surface: #f7f2e8; /* parchment */
+  --surface-raised: #fdfaf4; /* warm off-white */
+  --rule: #e0d8c8; /* hairlines — soft, never harsh */
+  --ink: #2a2118; /* warm brown-black */
+  --ink-muted: #6b5f4e; /* ~5.3:1 on surface — AA */
+  --ink-faint: #9a8f7d; /* ~2.8:1 — decorative/large only, never body text */
+  --accent: #4a6fa5; /* the one dusty blue — interactive moments only */
+  --accent-soft: #dfe6f0; /* faint tint for selected/active states */
+  --accent-ink: #f7f2e8; /* text on a solid accent fill */
+  --danger: #9b3b2f; /* warm muted red, on-register */
+  --grid: #2a211808; /* graph-paper texture — barely there */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: #211c14; /* deep warm ink-brown, NOT cool/pure black */
+  --surface-raised: #2b251b;
+  --rule: #3a3226;
+  --ink: #ece4d3;
+  --ink-muted: #a89a83;
+  --ink-faint: #7a6f5e;
+  --accent: #7a9cc9; /* same hue, brightened so it still pops */
+  --accent-soft: #2f3a4a;
+  --accent-ink: #211c14;
+  --danger: #c9705f;
+  --grid: #ece4d30a;
 }
 
+/* -------------------------------------------------------------------------
+ * Tokens → utilities. `inline` keeps the var reference in the generated CSS
+ * (rather than baking the value), which is what makes runtime theme switching
+ * work at all.
+ * ---------------------------------------------------------------------- */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-rule: var(--rule);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+
+  /* Serif everywhere; zero sans in the product (style guide §Typography).
+   * `--font-sans` is deliberately mapped to the serif too, so even a stray
+   * `font-sans` cannot reintroduce a sans-serif. */
+  --font-sans: var(--font-newsreader), Georgia, serif;
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-mono: var(--font-courier-prime), "Courier New", monospace;
+
+  /* Sharp corners are structural, not decorative. Zeroing the radius tokens
+   * squares every existing `rounded-md`/`rounded-lg` app-wide immediately —
+   * the sweep then just deletes the now-inert classes. (`rounded-full` is not
+   * token-driven; the few real circles are handled per-component.) */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+
+  /* Hard-edged offset shadows — a stamped sticker, never a soft blur. */
+  --shadow-stamp: 2px 2px 0 0 var(--rule);
+  --shadow-stamp-lg: 4px 4px 0 0 var(--rule);
+
+  /* Motion. The built-in CSS easings are too weak to read as intentional.
+   * Never `ease-in` — it delays the initial movement, exactly when the user is
+   * watching most closely. No overshoot anywhere: paper settles, it doesn't
+   * bounce (grill Q9). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* -------------------------------------------------------------------------
+ * Base
+ * ---------------------------------------------------------------------- */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-newsreader), Georgia, serif;
+
+  /* The faint graph-paper grid that sits behind everything. This is the ONE
+   * repeating texture in the product — it already spends the texture budget,
+   * which is why surfaces are solid and hatching is reserved for illustration
+   * (grill Q4: a second repeating texture would moiré against this one). */
+  background-image:
+    repeating-linear-gradient(to right, var(--grid) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px 24px);
+}
+
+/* Structural labels: small, uppercase, tracked, muted — a masthead, not a
+ * shout. Meta/system text: italic + muted. Real content: upright, full
+ * contrast. (Style guide §Typography — the app's visual grammar.) */
+@utility label-structural {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+}
+
+@utility text-system {
+  font-style: italic;
+  color: var(--ink-muted);
+}
+
+/* Reserved for the deferred lore/description feature (grill: Future note) so
+ * long-form prose doesn't force a type re-think later. Unused today. */
+@utility prose-measure {
+  max-width: 65ch;
+  line-height: 1.6;
+}
+
+/* Reduced motion means fewer and gentler animations, not zero: keep opacity and
+ * colour transitions (they aid comprehension), drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }

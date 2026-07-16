@@ -25,7 +25,12 @@ Status: ✅ done · 🚧 in progress · ⬜ not started
 | 14 | **Onboarding guide panel** | ✅ |
 | 15a | **Home + view history** — account-level Home (recently viewed via `subject_views`, recently edited across worlds, Tips + What's-new); ADR 0012 | ✅ |
 | 15b | **In-world navigation revamp** — journal **front page** (recency-led + categories index), the **Spyglass** (find/jump), Manage dissolved, Browse flat + inline add, `+` retired. **No tabs, no command palette** (ADR 0014). Spec: `step-15b-spec.md` | ✅ |
-| 16 | **Visual polish** — papery-**cartographer** register (Scriptorium + Atlas), design tokens, dark/light theme, skeleton mascot, Date v2 / Color swatch. First slice (create-menu/guide/control polish) shipped. | 🚧 |
+| 16 | **Visual identity** — papery-**cartographer** register (Scriptorium + Atlas). Grilled 2026-07-16 → `step-16-visual-identity-grill.md`; color model = [ADR 0015](adr/0015-two-axis-color-chrome-vs-content.md). Split into 16a–16d below. First slice (create-menu/guide/control polish) shipped. | 🚧 |
+| 16a | **Foundation & sweep** — semantic tokens (Tailwind v4 `@theme`), Newsreader + Courier Prime (serif everywhere, zero sans), System/Light/Dark toggle + no-flash script, motion tokens, radius→0, grid texture + hard offset shadows, Spyglass treatment, token sweep of ~25 files, ESLint guardrail, contrast + hover-on-touch fixes. **No migrations, no new assets.** | 🚧 |
+| 16b | **Color identity** — `worlds.color` + `categories.color` (palette key) + `categories.identity_field_id`; broad pale palette, pickers w/ "in use" grouping, at-creation pickers, livery pennant, Color-swatch v2 / Date v2. **3 migrations.** | ⬜ |
+| 16c | **Custom icon set** — ~20–30 monoline cartographic glyphs (extends `DiceIcon`), new picker, `categories.icon` emoji→key **data migration** + backfill, suggested-category chips re-glyphed. **Largest slice; isolated, lands any time.** | ⬜ |
+| 16d | **Delight** — peeking mascot easter egg, hatched empty-state illustrations (compass rose / cartouche). Genuinely deferrable. | ⬜ |
+| 17 | **Mobile pass** — the app has never had one. Touch targets, safe areas, responsive audit, and the **press-and-hold action menu** replacing hover-reveal Rename/Delete (16a only gates hover behind `@media (hover:hover)` as a stopgap). | ⬜ |
 
 > **Step 15 was rescoped** during the 2026-07-04 grill into **15a** (Home, done),
 > **15b** (nav revamp, spec'd) and a new **16** (visual polish). The original "global
