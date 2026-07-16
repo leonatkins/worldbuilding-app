@@ -17,11 +17,19 @@ All notable changes to this project are documented here. Format follows
   **Home**: recently viewed subjects (a new `subject_views` table, one collapsed row per
   subject — ADR 0012) and recently edited subjects across all worlds, the worlds list,
   and light editorial (a tip, what's new). Hidden gracefully for brand-new accounts.
+- **In-world navigation revamp (step 15b).** Each world now opens on a journal
+  **front page** — inline new-subject, recently edited / recently viewed (world-scoped),
+  and a categories index with counts — instead of a tabbed dashboard. `/search` became
+  `/browse`, a flat world-wide subject list with a recency/A–Z sort toggle, inline add,
+  and a Manage-tags disclosure. The category page is now a two-column authoring surface
+  (members + schema editor); `…/schema` redirects to it. **Manage** dissolved, the
+  global `+` create menu retired (New-world moved into the world switcher). No tabs,
+  no command palette (ADR 0014). Visual treatment deferred to step 16.
 - **UI + create-flow polish (step 16, first slice).** A context-aware `+` create menu
   that navigates and focuses the destination's inline form; styled radio dots for the
   starting-point control; the app's first custom icon (an outline die); a guide panel
-  that collapses advanced sections and slides in. *(Note: the `+` menu is slated for
-  retirement in step 15b — see `docs/step-15b-spec.md`.)*
+  that collapses advanced sections and slides in. *(Note: the `+` create menu was
+  subsequently retired in step 15b.)*
 - **World search & filtering (step 12).** A persistent search bar in a new
   per-world header searches subject names, fact text, and schema field values
   (matched on both the field name and its value) across the whole world, with a

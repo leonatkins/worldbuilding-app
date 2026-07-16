@@ -1,6 +1,6 @@
 # Step 15b — In-world Navigation Revamp
 
-**Status:** Approved (grilled 2026-07-14) — not yet built
+**Status:** Shipped (2026-07-15) — built + live-verified (Playwright smoke test). Visual treatment (Spyglass emphasis, papery-cartographer theme) deferred to step 16.
 **Roadmap step:** 15b (of the 15a/15b split; see `step-15-grill-notes.md`)
 **Depends on:** step 12 (`searchWorld`, the `/search` surface → Browse), step 15a
 (view history, `RecentSubjects`, account Home), step 16 (the `CreateMenu` this step

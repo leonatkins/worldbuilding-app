@@ -24,7 +24,7 @@ Status: ✅ done · 🚧 in progress · ⬜ not started
 | 13 | **Templates** — schema + world templates, library (ADRs 0009–0011) | ✅ |
 | 14 | **Onboarding guide panel** | ✅ |
 | 15a | **Home + view history** — account-level Home (recently viewed via `subject_views`, recently edited across worlds, Tips + What's-new); ADR 0012 | ✅ |
-| 15b | **In-world navigation revamp** — journal **front page** (recency-led + categories index), the **Spyglass** (find/jump), Manage dissolved, Browse flat + inline add, `+` retired. **No tabs, no command palette** (ADR 0014). Spec: `step-15b-spec.md` | 🚧 |
+| 15b | **In-world navigation revamp** — journal **front page** (recency-led + categories index), the **Spyglass** (find/jump), Manage dissolved, Browse flat + inline add, `+` retired. **No tabs, no command palette** (ADR 0014). Spec: `step-15b-spec.md` | ✅ |
 | 16 | **Visual polish** — papery-**cartographer** register (Scriptorium + Atlas), design tokens, dark/light theme, skeleton mascot, Date v2 / Color swatch. First slice (create-menu/guide/control polish) shipped. | 🚧 |
 
 > **Step 15 was rescoped** during the 2026-07-04 grill into **15a** (Home, done),
