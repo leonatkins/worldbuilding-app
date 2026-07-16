@@ -112,7 +112,7 @@ export function SubjectsList({
           No subjects yet. Name one above to get started.
         </p>
       ) : (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
           {sorted.map((s) => (
             <SubjectRow key={s.id} worldId={worldId} subject={s} />
           ))}
@@ -363,7 +363,7 @@ function RecentlyDeletedSubjects({
         Recently deleted ({subjects.length})
       </button>
       {open && (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
           {subjects.map((s) => (
             <DeletedSubjectRow
               key={s.id}

@@ -145,7 +145,7 @@ export function WorldsList({
             </label>
           </div>
 
-          <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+          <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
             {sorted.map((world) => (
               <WorldRow key={world.id} world={world} />
             ))}
@@ -190,7 +190,7 @@ function RecentlyDeleted({ worlds }: { worlds: DeletedWorld[] }) {
       </button>
 
       {open && (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
           {worlds.map((world) => (
             <DeletedWorldRow key={world.id} world={world} />
           ))}
@@ -277,7 +277,7 @@ function StartRadio({
         onChange={onChange}
         disabled={disabled}
       />
-      <span className="flex h-4 w-4 items-center justify-center rounded-full border border-neutral-400 transition peer-checked:border-neutral-900 dark:border-neutral-600 dark:peer-checked:border-neutral-100">
+      <span className="flex h-4 w-4 items-center justify-center rounded-full border border-neutral-400 bg-surface-raised transition peer-checked:border-neutral-900 dark:border-neutral-600 dark:peer-checked:border-neutral-100">
         <span className="h-2 w-2 scale-0 rounded-full bg-neutral-900 transition-transform peer-checked:scale-100 dark:bg-neutral-100" />
       </span>
       <span className="text-neutral-500 peer-checked:text-neutral-900 dark:text-neutral-400 dark:peer-checked:text-neutral-100">

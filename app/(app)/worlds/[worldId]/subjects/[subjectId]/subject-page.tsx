@@ -316,7 +316,7 @@ function PromotePanel({
   }
 
   return (
-    <div className="space-y-2 rounded-md border border-neutral-200 p-2 dark:border-neutral-800">
+    <div className="space-y-2 rounded-md border border-neutral-200 bg-surface-raised p-2 dark:border-neutral-800">
       {existingFields.length > 0 && (
         <label className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-300">
           <input type="radio" checked={mode === "existing"} onChange={() => setMode("existing")} />
@@ -681,7 +681,7 @@ function AddFieldMenu({
             key={f.id}
             type="button"
             onClick={() => onPick(f.id)}
-            className="rounded-full border border-neutral-200 px-2.5 py-1 text-xs text-neutral-600 transition hover:-translate-y-px hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100"
+            className="rounded-full border border-neutral-200 bg-surface-raised px-2.5 py-1 text-xs text-neutral-600 transition hover:-translate-y-px hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100"
           >
             {f.name}
             <span className="ml-1 text-neutral-400">{FIELD_TYPE_LABELS[f.type]}</span>
@@ -740,7 +740,7 @@ function FieldRow({
     const linked =
       state.kind === "link" ? (state.subject ? [state.subject] : []) : state.kind === "list" ? state.subjects : [];
     return (
-      <span className="inline-flex flex-wrap items-baseline gap-1 rounded-md border border-neutral-200 px-2.5 py-1 text-sm dark:border-neutral-800">
+      <span className="inline-flex flex-wrap items-baseline gap-1 rounded-md border border-neutral-200 bg-surface-raised px-2.5 py-1 text-sm dark:border-neutral-800">
         <span className="text-neutral-500">{field.name}:</span>
         {linked.length === 0 ? (
           <span className="font-medium text-neutral-900 dark:text-neutral-100">—</span>
@@ -778,7 +778,7 @@ function FieldRow({
       type="button"
       onClick={() => setEditing(true)}
       title="Click to edit"
-      className="inline-flex items-baseline gap-1 rounded-md border border-neutral-200 px-2.5 py-1 text-sm transition hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600"
+      className="inline-flex items-baseline gap-1 rounded-md border border-neutral-200 bg-surface-raised px-2.5 py-1 text-sm transition hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600"
     >
       <span className="text-neutral-500">{field.name}:</span>
       {field.type === "Color" && state.kind === "scalar" && state.value ? (

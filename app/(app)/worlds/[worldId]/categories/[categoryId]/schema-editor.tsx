@@ -123,7 +123,7 @@ export function SchemaEditor({ worldId, categoryId, fields, categories }: Props)
       ) : (
         <DndContext id="schema-fields" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={items.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-            <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+            <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
               {items.map((field) => (
                 <FieldRow
                   key={field.id}
@@ -145,7 +145,7 @@ export function SchemaEditor({ worldId, categoryId, fields, categories }: Props)
       )}
 
       {adding ? (
-        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="rounded-lg border border-neutral-200 bg-surface-raised p-4 dark:border-neutral-800">
           <FieldForm
             worldId={worldId}
             categoryId={categoryId}

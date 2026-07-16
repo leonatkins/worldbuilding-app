@@ -33,7 +33,7 @@ export function TagManager({ worldId, tags }: { worldId: string; tags: WorldTag[
         Tags ({tags.length})
       </button>
       {open && (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
           {tags.map((t) => (
             <TagRow key={t.id} worldId={worldId} tag={t} />
           ))}

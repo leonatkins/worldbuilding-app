@@ -190,7 +190,7 @@ function WorldPreview({ snapshot }: { snapshot: WorldSnapshot }) {
       </p>
       <ul className="space-y-2">
         {snapshot.categories.map((c, i) => (
-          <li key={i} className="rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+          <li key={i} className="rounded-md border border-neutral-200 bg-surface-raised p-3 dark:border-neutral-800">
             <div className="font-medium">
               {c.icon ?? ""} {c.name}
             </div>

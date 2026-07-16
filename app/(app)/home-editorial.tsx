@@ -24,7 +24,7 @@ export function HomeTip() {
   }, []);
 
   return (
-    <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+    <section className="rounded-lg border border-neutral-200 bg-surface-raised p-4 dark:border-neutral-800">
       <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Tip</h2>
       <p className="mt-2 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
         {TIPS[tip]}
@@ -36,7 +36,7 @@ export function HomeTip() {
 /** Latest release notes. Static; `whatsNew` is the already-sliced list. */
 export function WhatsNewPanel({ whatsNew }: { whatsNew: WhatsNewEntry[] }) {
   return (
-    <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+    <section className="rounded-lg border border-neutral-200 bg-surface-raised p-4 dark:border-neutral-800">
       <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">What&rsquo;s new</h2>
       <ul className="mt-2 space-y-2">
         {whatsNew.map((e) => (

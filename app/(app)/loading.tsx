@@ -13,7 +13,7 @@ export default function Loading() {
         <div className="h-4 w-full animate-pulse rounded bg-neutral-100 dark:bg-neutral-900" />
       </div>
       <div className="h-10 w-full animate-pulse rounded-md bg-neutral-100 dark:bg-neutral-900" />
-      <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+      <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
         {Array.from({ length: 4 }).map((_, i) => (
           <li key={i} className="flex items-center gap-3 px-4 py-3">
             <div className="h-4 w-4 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" />

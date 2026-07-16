@@ -125,7 +125,7 @@ export function CategoryManager({ worldId, categories, deletedCategories }: Prop
             items={items.map((c) => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+            <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
               {items.map((category) => (
                 <CategoryRow
                   key={category.id}
@@ -228,7 +228,7 @@ function CreateCategoryForm({
             type="button"
             disabled={pending}
             onClick={() => submit(s.name, s.icon)}
-            className="rounded-full border border-neutral-200 px-2.5 py-1 text-xs text-neutral-600 transition hover:-translate-y-px hover:border-neutral-400 hover:text-neutral-900 disabled:opacity-50 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-100"
+            className="rounded-full border border-neutral-200 bg-surface-raised px-2.5 py-1 text-xs text-neutral-600 transition hover:-translate-y-px hover:border-neutral-400 hover:text-neutral-900 disabled:opacity-50 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-100"
           >
             {s.icon} {s.name}
           </button>
@@ -628,7 +628,7 @@ function RecentlyDeletedCategories({
         Recently deleted ({categories.length})
       </button>
       {open && (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
           {categories.map((c) => (
             <DeletedCategoryRow key={c.id} worldId={worldId} category={c} />
           ))}

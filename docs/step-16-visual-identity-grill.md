@@ -229,21 +229,40 @@ hover**, so those Rename/Delete controls are permanently visible or unreachable.
 `@media (hover: hover) and (pointer: fine)` gating + a touch fallback. A real mobile
 defect hiding inside an aesthetic rule.
 
-### Sweep rule — bordered containers MUST be opaque
-**Found live during the 16a Overview sweep.** Many panels were `border border-rule`
-with *no* background: that was invisible before, because the body was flat white and a
-transparent panel on white looks white. **The grid texture breaks that** — a transparent
-panel now shows the graph paper straight through it, which reads as a missing background.
+## ⚠️ THE OPAQUE-PANEL RULE (app-wide, enforced)
 
-**Rule: any bordered container gets `bg-surface-raised`.** Panels are sheets laid *on*
-the graph paper, not windows onto it. This also delivers the style guide's *"sections are
-separated with thin hairline borders **and a subtle surface-color change**"* — the
-surface change was simply absent before.
+> **Any box-bordered container MUST have an opaque background (`bg-surface-raised`).
+> Panels are sheets laid ON the paper, not windows onto it.**
 
-Exception: dashed **empty states** stay transparent on purpose — bare paper is the point.
+**Enforced by `npm run audit:panels`** (`scripts/audit-panels.mjs`, exits non-zero with
+file:line). Documented at source in `app/globals.css` beside the texture that causes it.
 
-Detection for the remaining files:
-`grep -rnoE 'className="[^"]*border border-rule[^"]*"' app --include=*.tsx | grep -v "bg-"`
+### Why this is a *class* of bug, not a one-off
+The grid texture sits behind everything. A bordered panel with **no background** lets the
+grid show straight through, which reads as a missing background. Crucially **the bug is
+invisible without the texture** — while the page background was flat white, a transparent
+panel on white simply *looks* white. So the app accumulated **26 of them across 12 files**
+without anyone being able to see it. Adding the texture didn't cause the bug; it
+*revealed* it.
+
+The style guide asked for this all along — *"sections are separated with thin hairline
+borders **and a subtle surface-color change**"*. The surface change was simply never
+implemented, and nothing could show that until now.
+
+### The distinction that decides it
+| Pattern | Meaning | Background? |
+|---|---|---|
+| `border` (box) | a **panel** | **YES** — `bg-surface-raised` |
+| `border-b` / `border-t` / … (edge) | a **divider** | no — stays transparent |
+| `border-dashed` | an **empty state** | no — bare paper is the point |
+| paints its own fill (Color swatch's inline style, native `<input type="color">`) | — | no — a surface token would be wrong |
+
+### Scale of the fix (2026-07-16)
+26 panels across 12 files. One idiom accounted for **13** of them —
+`divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 …`,
+the app's standard list-panel pattern, which had never had a background. Every file using
+it inherited the gap. Swept onto tokens (`divide-rule` / `border-rule` /
+`bg-surface-raised`) in the same pass.
 
 ### Palette anchors (starting values, tune in situ)
 | | Light | Dark |

@@ -49,7 +49,7 @@ export function BrowseResults({ worldId, results }: { worldId: string; results: 
   return (
     <div className="space-y-2">
       <div className="flex justify-end">
-        <div className="inline-flex overflow-hidden rounded-md border border-neutral-300 text-xs dark:border-neutral-700">
+        <div className="inline-flex overflow-hidden rounded-md border border-neutral-300 bg-surface-raised text-xs dark:border-neutral-700">
           <SortButton active={sort === "recent"} onClick={() => writeSort("recent")}>
             Recently edited
           </SortButton>
@@ -58,7 +58,7 @@ export function BrowseResults({ worldId, results }: { worldId: string; results: 
           </SortButton>
         </div>
       </div>
-      <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+      <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
         {sorted.map((r) => (
           <li key={r.id}>
             <Link

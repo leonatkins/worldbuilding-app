@@ -120,7 +120,22 @@ body {
   /* The faint graph-paper grid that sits behind everything. This is the ONE
    * repeating texture in the product — it already spends the texture budget,
    * which is why surfaces are solid and hatching is reserved for illustration
-   * (grill Q4: a second repeating texture would moiré against this one). */
+   * (grill Q4: a second repeating texture would moiré against this one).
+   *
+   * ⚠️ THIS TEXTURE MAKES ONE RULE NON-NEGOTIABLE:
+   *
+   *      ANY BOX-BORDERED CONTAINER MUST HAVE AN OPAQUE BACKGROUND
+   *      (`bg-surface-raised`). Panels are sheets laid ON the paper, not
+   *      windows onto it.
+   *
+   * A bordered panel with no background lets the grid show straight through and
+   * reads as a missing background. The bug is INVISIBLE without the texture —
+   * while the page was flat white, a transparent panel on white just looks
+   * white — which is how ~26 of them shipped. Enforced by `npm run audit:panels`.
+   *
+   * Exempt: `border-dashed` empty states (bare paper is the point) and elements
+   * that paint their own fill. Edge borders (border-b/t) are dividers, not
+   * panels, and stay transparent. */
   background-image:
     repeating-linear-gradient(to right, var(--grid) 0 1px, transparent 1px 24px),
     repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px 24px);
@@ -161,12 +176,16 @@ body {
  * animate-…` is silently ignored: the class exists but resolves to
  * `animation: none`, which fails invisibly. */
 @theme {
-  --animate-world-enter: world-enter 260ms var(--ease-out) both;
+  /* 380ms/10px, not the 150ms/6px of a micro-interaction: this is a rare context
+   * shift (modals/drawers sit at 200-500ms), and it competes with navigation
+   * latency — the server round-trip holds the OLD content on screen first, so a
+   * shorter fade just reads as "page finished loading". */
+  --animate-world-enter: world-enter 380ms var(--ease-out) both;
 
   @keyframes world-enter {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(10px);
     }
     to {
       opacity: 1;

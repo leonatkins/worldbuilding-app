@@ -69,7 +69,7 @@ export function TemplateLibrary({
       )}
 
       {!creating && !editing && (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
           {templates.map((t) => (
             <li key={t.id} className="px-4 py-3">
               <TemplateRow
@@ -221,7 +221,7 @@ function TemplateEditor({
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+    <div className="space-y-4 rounded-lg border border-neutral-200 bg-surface-raised p-4 dark:border-neutral-800">
       <div className="space-y-2">
         <input
           type="text"
@@ -312,7 +312,7 @@ function SnapshotFieldsEditor({
   return (
     <div className="space-y-4">
       {snapshot.categories.map((cat, i) => (
-        <div key={i} className="space-y-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
+        <div key={i} className="space-y-3 rounded-md border border-neutral-200 bg-surface-raised p-3 dark:border-neutral-800">
           <div className="grid grid-cols-2 gap-2">
             <input
               type="text"

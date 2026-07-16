@@ -129,7 +129,7 @@ export function FactsList({
       {items.length > 0 && (
         <DndContext id="facts-list" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={items.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-            <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+            <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
               {items.map((fact) => (
                 <FactRow
                   key={fact.id}
@@ -546,7 +546,7 @@ function RecentlyDeletedFacts({
         Recently deleted ({facts.length})
       </button>
       {open && (
-        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+        <ul className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-surface-raised dark:divide-neutral-800 dark:border-neutral-800">
           {facts.map((f) => (
             <DeletedFactRow key={f.id} worldId={worldId} subjectId={subjectId} fact={f} />
           ))}
