@@ -92,10 +92,22 @@ export function ThemeToggle() {
   const ref = useRef<HTMLDivElement>(null);
 
   const setPref = useCallback((next: Pref) => {
-    localStorage.setItem(THEME_KEY, next);
-    applyPref(next);
-    window.dispatchEvent(new Event(THEME_EVENT));
+    const commit = () => {
+      localStorage.setItem(THEME_KEY, next);
+      applyPref(next);
+      window.dispatchEvent(new Event(THEME_EVENT));
+    };
     setOpen(false);
+
+    // Cross-fade the whole document as one composited image. Gated in JS rather
+    // than CSS because ::view-transition-* pseudo-elements live outside the `*`
+    // selector the reduced-motion block uses, so they'd animate regardless.
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || !document.startViewTransition) {
+      commit();
+      return;
+    }
+    document.startViewTransition(commit);
   }, []);
 
   // Follow the OS live while the preference is "system" — otherwise the choice

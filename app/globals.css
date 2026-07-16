@@ -148,6 +148,44 @@ body {
   line-height: 1.6;
 }
 
+/* -------------------------------------------------------------------------
+ * Named motion
+ * ---------------------------------------------------------------------- */
+
+/* Crossing into another world. A quiet settle, not an entrance: paper doesn't
+ * bounce (grill Q9). Fires only on a world change — see the keyed wrapper in
+ * worlds/[worldId]/layout.tsx.
+ *
+ * NB: `animate-*` is a reserved Tailwind v4 theme namespace — it must be
+ * declared as `--animate-*` inside `@theme`, NOT via `@utility`. An `@utility
+ * animate-…` is silently ignored: the class exists but resolves to
+ * `animation: none`, which fails invisibly. */
+@theme {
+  --animate-world-enter: world-enter 260ms var(--ease-out) both;
+
+  @keyframes world-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* Theme change. The document cross-fades as ONE composited image (View
+ * Transitions), rather than transitioning colour on every element: hundreds of
+ * paint-bound colour transitions are expensive, and text/background interpolate
+ * at different rates, so contrast dips mid-flight and the whole thing goes
+ * murky. Like a lamp dimming. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 260ms;
+  animation-timing-function: var(--ease-out);
+}
+
 /* Reduced motion means fewer and gentler animations, not zero: keep opacity and
  * colour transitions (they aid comprehension), drop movement. */
 @media (prefers-reduced-motion: reduce) {

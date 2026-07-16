@@ -23,7 +23,16 @@ export default async function WorldLayout({
           <GlobalSearchBar worldId={worldId} />
         </div>
       </div>
-      {children}
+      {/*
+       * Keyed on worldId so the enter animation replays only when the WORLD
+       * changes — crossing into another world is a context shift worth marking.
+       * Navigating Overview→Browse→a subject inside one world keeps the same key
+       * and stays instant, which is what keeps this from becoming latency on the
+       * paths you walk all day.
+       */}
+      <div key={worldId} className="animate-world-enter">
+        {children}
+      </div>
     </>
   );
 }
